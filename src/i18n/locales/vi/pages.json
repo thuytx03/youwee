@@ -175,6 +175,9 @@
       "cancel": "Hủy"
     }
   },
+  "editor": {
+    "title": "Trình sửa video"
+  },
   "logs": {
     "title": "Nhật ký",
     "loading": "Đang tải nhật ký...",

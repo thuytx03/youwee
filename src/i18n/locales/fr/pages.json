@@ -175,6 +175,9 @@
       "cancel": "Annuler"
     }
   },
+  "editor": {
+    "title": "Éditeur vidéo"
+  },
   "logs": {
     "title": "Journaux",
     "loading": "Chargement des journaux...",

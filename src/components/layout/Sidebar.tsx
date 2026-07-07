@@ -1,6 +1,7 @@
 import {
   ChevronLeft,
   ChevronRight,
+  Clapperboard,
   FolderDown,
   Globe,
   Images,
@@ -28,6 +29,7 @@ export type Page =
   | 'channels'
   | 'summary'
   | 'processing'
+  | 'editor'
   | 'subtitles'
   | 'metadata'
   | 'library'
@@ -75,6 +77,11 @@ const navItems: NavItem[] = [
     id: 'processing',
     labelKey: 'sidebar.processing',
     icon: <Wand2 className="w-5 h-5" />,
+  },
+  {
+    id: 'editor',
+    labelKey: 'sidebar.editor',
+    icon: <Clapperboard className="w-5 h-5" />,
   },
   {
     id: 'subtitles',

@@ -391,6 +391,47 @@ pub fn init_database(app: &AppHandle) -> Result<(), String> {
     )
     .ok();
 
+    // Create editor_jobs table (Video Editor module — independent from processing_jobs)
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS editor_jobs (
+            id TEXT PRIMARY KEY,
+            input_path TEXT NOT NULL,
+            output_path TEXT,
+            task_type TEXT NOT NULL,
+            user_prompt TEXT,
+            ffmpeg_command TEXT NOT NULL,
+            status TEXT NOT NULL DEFAULT 'pending',
+            progress REAL DEFAULT 0,
+            error_message TEXT,
+            created_at TEXT NOT NULL,
+            completed_at TEXT
+        )",
+        [],
+    )
+    .map_err(|e| format!("Failed to create editor_jobs table: {}", e))?;
+
+    // Create editor_presets table (Video Editor module)
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS editor_presets (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            description TEXT,
+            task_type TEXT NOT NULL,
+            prompt_template TEXT NOT NULL,
+            icon TEXT,
+            created_at TEXT NOT NULL
+        )",
+        [],
+    )
+    .map_err(|e| format!("Failed to create editor_presets table: {}", e))?;
+
+    // Create editor indexes
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_editor_jobs_created ON editor_jobs(created_at DESC)",
+        [],
+    )
+    .ok();
+
     // Create followed_channels table
     conn.execute(
         "CREATE TABLE IF NOT EXISTS followed_channels (

@@ -29,6 +29,7 @@ import { SummarySessionProvider } from '@/contexts/SummarySessionProvider';
 import { ThemeProvider, useTheme } from '@/contexts/ThemeContext';
 import { UniversalProvider } from '@/contexts/UniversalContext';
 import { UpdaterProvider, useUpdater } from '@/contexts/UpdaterContext';
+import { VideoEditorProvider } from '@/contexts/VideoEditorContext';
 import { useExternalDownloadLinks } from '@/hooks/useExternalDownloadLinks';
 import { usePluginExecutionToasts } from '@/hooks/usePluginExecutionToasts';
 import { useTelegramRemoteCommands } from '@/hooks/useTelegramRemoteCommands';
@@ -47,6 +48,7 @@ import {
   SubtitlesPage,
   SummaryPage,
   UniversalPage,
+  VideoEditorPage,
 } from '@/pages';
 
 function AppContent() {
@@ -197,6 +199,14 @@ function AppContent() {
             <ProcessingPage />
           </ErrorBoundary>
         )}
+        {currentPage === 'editor' && (
+          <ErrorBoundary
+            fallbackTitle="Video Editor Error"
+            fallbackMessage="The video editor page encountered an error. This may be caused by an unsupported video format or insufficient system resources."
+          >
+            <VideoEditorPage />
+          </ErrorBoundary>
+        )}
         {currentPage === 'metadata' && <MetadataPage />}
         {currentPage === 'subtitles' && <SubtitlesPage />}
         {currentPage === 'library' && <HistoryPage />}
@@ -251,6 +261,7 @@ export function App() {
                       <AIProvider>
                         <SummarySessionProvider>
                           <ProcessingProvider>
+                            <VideoEditorProvider>
                             <SubtitleProvider>
                               <MetadataProvider>
                                 <DataExportProvider>
@@ -262,6 +273,7 @@ export function App() {
                                 </DataExportProvider>
                               </MetadataProvider>
                             </SubtitleProvider>
+                            </VideoEditorProvider>
                           </ProcessingProvider>
                         </SummarySessionProvider>
                       </AIProvider>

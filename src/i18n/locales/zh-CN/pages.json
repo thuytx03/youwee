@@ -175,6 +175,9 @@
       "cancel": "取消"
     }
   },
+  "editor": {
+    "title": "视频编辑器"
+  },
   "logs": {
     "title": "日志",
     "loading": "加载日志中...",

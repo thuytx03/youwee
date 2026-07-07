@@ -175,6 +175,9 @@
       "cancel": "Cancelar"
     }
   },
+  "editor": {
+    "title": "Editor de vídeo"
+  },
   "logs": {
     "title": "Registros",
     "loading": "Carregando registros...",
