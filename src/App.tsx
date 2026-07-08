@@ -29,7 +29,6 @@ import { SummarySessionProvider } from '@/contexts/SummarySessionProvider';
 import { ThemeProvider, useTheme } from '@/contexts/ThemeContext';
 import { UniversalProvider } from '@/contexts/UniversalContext';
 import { UpdaterProvider, useUpdater } from '@/contexts/UpdaterContext';
-import { VideoEditorProvider } from '@/contexts/VideoEditorContext';
 import { useExternalDownloadLinks } from '@/hooks/useExternalDownloadLinks';
 import { usePluginExecutionToasts } from '@/hooks/usePluginExecutionToasts';
 import { useTelegramRemoteCommands } from '@/hooks/useTelegramRemoteCommands';
@@ -261,7 +260,6 @@ export function App() {
                       <AIProvider>
                         <SummarySessionProvider>
                           <ProcessingProvider>
-                            <VideoEditorProvider>
                             <SubtitleProvider>
                               <MetadataProvider>
                                 <DataExportProvider>
@@ -273,7 +271,6 @@ export function App() {
                                 </DataExportProvider>
                               </MetadataProvider>
                             </SubtitleProvider>
-                            </VideoEditorProvider>
                           </ProcessingProvider>
                         </SummarySessionProvider>
                       </AIProvider>

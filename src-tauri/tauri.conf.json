@@ -24,7 +24,8 @@
         "visible": false,
         "decorations": true,
         "titleBarStyle": "Overlay",
-        "hiddenTitle": true
+        "hiddenTitle": true,
+        "dragDropEnabled": false
       }
     ],
     "security": {
@@ -32,6 +33,10 @@
       "assetProtocol": {
         "enable": true,
         "scope": ["$HOME/**", "$APPDATA/**", "$TEMP/**"]
+      },
+      "headers": {
+        "Cross-Origin-Opener-Policy": "same-origin",
+        "Cross-Origin-Embedder-Policy": "require-corp"
       }
     }
   },

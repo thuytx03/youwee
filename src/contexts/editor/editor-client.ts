@@ -153,6 +153,20 @@ export async function revealOutputInFolder(path: string): Promise<void> {
   await openFileLocation(path);
 }
 
+// Persist an Elah-exported MP4 (raw bytes from the WebCodecs export worker) to
+// disk and record it in editor_jobs. Returns the written file path.
+export async function saveEditorExport(input: {
+  bytes: Uint8Array;
+  outputPath: string;
+  inputName?: string;
+}): Promise<string> {
+  return invoke<string>('editor_save_export', {
+    bytes: Array.from(input.bytes),
+    outputPath: input.outputPath,
+    inputName: input.inputName ?? null,
+  });
+}
+
 export async function deleteProcessingJob(id: string): Promise<void> {
   await invoke('editor_delete_job', { id });
 }

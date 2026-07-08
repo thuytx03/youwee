@@ -1,0 +1,109 @@
+/*
+ * Elah ↔ Youwee theme bridge.
+ *
+ * Elah ships its own hard-coded dark palette (--elah-* in tokens.css), so the
+ * editor ignored the app's Settings theme (colors + light/dark). Here we remap
+ * the core --elah-* variables onto Youwee's shadcn HSL theme tokens
+ * (--background, --card, --primary, …) so the editor follows the project theme
+ * and light/dark automatically. tokens.css must be imported BEFORE this file;
+ * these overrides win by being scoped to .elah-root and loaded last.
+ *
+ * The app theme vars are `H S% L%` triplets consumed via hsl(); Elah expects
+ * finished color values, so we wrap them in hsl(...) here.
+ *
+ * Specialized timeline colors (clip fills, waveform, tick marks, effects) are
+ * left as Elah's defaults on purpose — they're functional timeline styling, not
+ * app chrome, and remapping them to theme tokens would hurt legibility.
+ */
+.elah-root {
+  /* Surfaces — map Elah's bg ramp onto the app's background/card/popover ramp */
+  --elah-bg: hsl(var(--background));
+  --elah-bg-secondary: hsl(var(--background));
+  --elah-bg-panel: hsl(var(--card));
+  --elah-bg-card: hsl(var(--card));
+  --elah-bg-elevated: hsl(var(--muted));
+  --elah-bg-highest: hsl(var(--secondary));
+  --elah-preview-bg: hsl(var(--background));
+
+  /* Text */
+  --elah-text: hsl(var(--foreground));
+  --elah-text-muted: hsl(var(--muted-foreground));
+
+  /* Borders */
+  --elah-border: hsl(var(--border));
+  --elah-border-subtle: hsl(var(--border) / 0.5);
+  --elah-outline: hsl(var(--ring));
+
+  /* Accent — follows the Settings primary/gradient color */
+  --elah-accent: hsl(var(--primary));
+  --elah-accent-hover: hsl(var(--primary));
+  --elah-accent-dim: hsl(var(--primary) / 0.7);
+  --elah-accent-soft: hsl(var(--primary) / 0.15);
+  --elah-accent-text: hsl(var(--primary-foreground));
+  --elah-accent-glow: hsl(var(--primary) / 0.5);
+  --elah-selection-border: hsl(var(--primary));
+  --elah-selection-color: hsl(var(--primary));
+  --elah-selection-glow: hsl(var(--primary) / 0.5);
+  --elah-selection-handle: hsl(var(--primary));
+  --elah-playhead: hsl(var(--foreground));
+
+  /* Menus / popovers / dialogs — use popover + card tokens */
+  --elah-menu-bg: hsl(var(--popover));
+  --elah-menu-border: hsl(var(--border));
+  --elah-popover-bg: hsl(var(--popover));
+  --elah-popover-border: hsl(var(--border));
+  --elah-dialog-bg: hsl(var(--card));
+  --elah-dialog-border: hsl(var(--border));
+  --elah-dialog-overlay: hsl(var(--background) / 0.6);
+
+  /* Error / danger — from destructive token */
+  --elah-color-error: hsl(var(--destructive));
+  --elah-danger-text: hsl(var(--destructive));
+  --elah-danger-border: hsl(var(--destructive) / 0.5);
+
+  /* Radius from the app scale */
+  --elah-radius-sm: calc(var(--radius) - 4px);
+  --elah-radius-md: calc(var(--radius) - 2px);
+}
+
+/* ── ed-* Tailwind utilities that the ported playground components use but the
+ * npm package's styles.css doesn't ship. Point them at the (now theme-aware)
+ * --elah-* variables above. */
+.elah-root .bg-ed-bg { background-color: var(--elah-bg); }
+.elah-root .bg-ed-bg-2 { background-color: var(--elah-bg-secondary); }
+.elah-root .bg-ed-panel { background-color: var(--elah-bg-panel); }
+.elah-root .bg-ed-elevated { background-color: var(--elah-bg-elevated); }
+.elah-root .bg-ed-highest { background-color: var(--elah-bg-highest); }
+.elah-root .bg-ed-card { background-color: var(--elah-bg-card); }
+.elah-root .bg-ed-accent { background-color: var(--elah-accent); }
+.elah-root .bg-ed-accent-soft { background-color: var(--elah-accent-soft); }
+.elah-root .bg-ed-border { background-color: var(--elah-border); }
+.elah-root .bg-ed-text-muted { background-color: var(--elah-text-muted); }
+
+.elah-root .text-ed-text { color: var(--elah-text); }
+.elah-root .text-ed-text-muted { color: var(--elah-text-muted); }
+.elah-root .text-ed-accent { color: var(--elah-accent); }
+.elah-root .text-ed-error { color: var(--elah-color-error); }
+
+.elah-root .border-ed-border { border-color: var(--elah-border); }
+.elah-root .border-ed-border-subtle { border-color: var(--elah-border-subtle); }
+.elah-root .border-ed-accent { border-color: var(--elah-accent); }
+
+/* Range slider used by the ported property panels. */
+.elah-root .elah-range {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--elah-bg-highest);
+  outline: none;
+}
+.elah-root .elah-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: var(--elah-accent);
+  cursor: pointer;
+}

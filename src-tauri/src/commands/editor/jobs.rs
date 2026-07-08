@@ -393,3 +393,49 @@ pub async fn editor_delete_preset(_app: AppHandle, id: String) -> Result<(), Str
 
     Ok(())
 }
+
+/// Save an Elah-exported MP4 (raw bytes from the WebCodecs export worker) to
+/// disk and record the result in editor_jobs. Returns the written file path.
+#[tauri::command]
+pub async fn editor_save_export(
+    _app: AppHandle,
+    bytes: Vec<u8>,
+    output_path: String,
+    input_name: Option<String>,
+) -> Result<String, String> {
+    let path = Path::new(&output_path);
+    if let Some(parent) = path.parent() {
+        tokio::fs::create_dir_all(parent)
+            .await
+            .map_err(|e| format!("Failed to create output directory: {}", e))?;
+    }
+
+    tokio::fs::write(path, &bytes)
+        .await
+        .map_err(|e| format!("Failed to write exported file: {}", e))?;
+
+    // Record in history (best-effort — a DB error should not lose the file).
+    if let Ok(conn) = get_db() {
+        let id = uuid::Uuid::new_v4().to_string();
+        let now = chrono::Utc::now().to_rfc3339();
+        let input = input_name.unwrap_or_else(|| "timeline".to_string());
+        let _ = conn.execute(
+            "INSERT INTO editor_jobs (id, input_path, output_path, task_type, user_prompt, ffmpeg_command, status, progress, created_at, completed_at)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
+            params![
+                id,
+                input,
+                output_path,
+                "elah_export",
+                Option::<String>::None,
+                "[elah webcodecs export]",
+                "completed",
+                100.0,
+                now,
+                now
+            ],
+        );
+    }
+
+    Ok(output_path)
+}
