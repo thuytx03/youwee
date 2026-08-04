@@ -4,5 +4,6 @@ export { DownloadSection } from './DownloadSection';
 export { ExtensionSection } from './ExtensionSection';
 export { GeneralSection } from './GeneralSection';
 export { NetworkSection } from './NetworkSection';
+export { PluginStoreSection } from './PluginStoreSection';
 export { PluginsSection } from './PluginsSection';
 export { RemoteDownloadSection } from './RemoteDownloadSection';

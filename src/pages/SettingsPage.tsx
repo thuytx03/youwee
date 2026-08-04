@@ -36,6 +36,7 @@ import {
   ExtensionSection,
   GeneralSection,
   NetworkSection,
+  PluginStoreSection,
   PluginsSection,
   RemoteDownloadSection,
   SettingsRow,
@@ -92,6 +93,13 @@ export function SettingsPage({
     }, 100);
   }, []);
 
+  const handleOpenPluginsFromStore = useCallback(
+    (_pluginId?: string) => {
+      handleSearchNavigate('plugins', 'plugins-manager');
+    },
+    [handleSearchNavigate],
+  );
+
   // Updater state helpers
   const isAppChecking = updater.status === 'checking';
   const isAppUpdateAvailable = updater.status === 'available';
@@ -147,6 +155,10 @@ export function SettingsPage({
                 )}
 
                 {activeSection === 'plugins' && <PluginsSection highlightId={highlightId} />}
+
+                {activeSection === 'plugin-store' && (
+                  <PluginStoreSection onOpenPlugins={handleOpenPluginsFromStore} />
+                )}
 
                 {activeSection === 'extension' && <ExtensionSection highlightId={highlightId} />}
 

@@ -8,6 +8,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import { createClientId } from '@/lib/client-id';
 import { ToastViewport } from './ToastViewport';
 import type { ToastApi, ToastInput, ToastRecord, ToastUpdate, ToastVariant } from './toast.types';
 
@@ -17,11 +18,7 @@ const TOAST_EXIT_DURATION_MS = 180;
 const ToastContext = createContext<ToastApi | undefined>(undefined);
 
 function createToastId() {
-  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
-    return crypto.randomUUID();
-  }
-
-  return `toast-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+  return createClientId('toast');
 }
 
 function getDefaultDuration(variant: ToastVariant) {

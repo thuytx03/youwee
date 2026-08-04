@@ -5,6 +5,13 @@ export type AudioBitrate = 'auto' | '128';
 export type PreferredFps = 'original' | '30';
 export type SubtitleMode = 'off' | 'auto' | 'manual';
 export type SubtitleFormat = 'srt' | 'vtt' | 'ass';
+export type FilenameMetadataField =
+  | 'uploadDate'
+  | 'viewCount'
+  | 'uploader'
+  | 'duration'
+  | 'resolution'
+  | 'videoId';
 export type YtdlpAdvancedOptionId =
   | 'impersonate'
   | 'forceIpv4'
@@ -103,6 +110,8 @@ export interface ItemDownloadSettings {
   skipLive?: boolean;
   numberPlaylistItems?: boolean;
   numberQueueItems?: boolean;
+  filenameMetadataEnabled?: boolean;
+  filenameMetadataFields?: FilenameMetadataField[];
   splitEmbeddedChapters?: boolean;
   numberChapterFiles?: boolean;
   autoOrganizeCollections?: boolean;
@@ -131,6 +140,8 @@ export interface ItemUniversalSettings {
   liveFromStart?: boolean;
   skipLive?: boolean;
   numberQueueItems?: boolean;
+  filenameMetadataEnabled?: boolean;
+  filenameMetadataFields?: FilenameMetadataField[];
   splitEmbeddedChapters?: boolean;
   numberChapterFiles?: boolean;
   autoOrganizeCollections?: boolean;
@@ -319,6 +330,8 @@ export interface DownloadSettings {
   embedThumbnail: boolean; // Embed thumbnail as cover art (requires FFmpeg)
   numberPlaylistItems: boolean; // Prefix expanded playlist items with their playlist number
   numberQueueItems: boolean; // Prefix regular queued items with their queue order
+  filenameMetadataEnabled: boolean; // Prefix downloaded files with selected yt-dlp metadata fields
+  filenameMetadataFields: FilenameMetadataField[]; // Structured allowlisted metadata fields for filenames
   splitEmbeddedChapters: boolean; // Split downloaded media into embedded chapter files
   numberChapterFiles: boolean; // Prefix chapter files with chapter numbers when splitting
   autoOrganizeCollections: boolean; // Create library collections for expanded playlists, channel downloads, and split chapters
@@ -543,6 +556,51 @@ export interface PluginPackageInspection {
   signerFingerprint?: string | null;
   signatureAlgorithm?: string | null;
   signedAt?: string | null;
+}
+
+export type PluginStorePublisherKind = 'official' | 'third-party';
+export type PluginStoreInstalledStatus = 'not-installed' | 'installed';
+
+export interface PluginStorePublisher {
+  kind: PluginStorePublisherKind;
+  name: string;
+  repositoryOwner: string;
+}
+
+export interface PluginStoreVersion {
+  version: string;
+  releaseTag: string;
+  assetName: string;
+  packageUrl: string;
+  packageSize: number;
+  sha256: string;
+  signerFingerprint: string;
+  minAppVersion: string;
+}
+
+export interface PluginStoreEntry {
+  pluginId: string;
+  slug: string;
+  name: string;
+  description: string;
+  icon?: string | null;
+  publisher: PluginStorePublisher;
+  repository: string;
+  categories: string[];
+  tags: string[];
+  triggers: string[];
+  permissionsSummary: string[];
+  latestVersion: string;
+  versions: PluginStoreVersion[];
+  installedStatus: PluginStoreInstalledStatus;
+  installedVersion?: string | null;
+}
+
+export interface PreparedPluginStorePackage {
+  path: string;
+  entry: PluginStoreEntry;
+  version: PluginStoreVersion;
+  inspection: PluginPackageInspection;
 }
 
 export interface PluginWorkspaceSummary {

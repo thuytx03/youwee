@@ -17,8 +17,8 @@
     "jsx": "react-jsx",
 
     /* Path aliases — @elah/* mirrors vite.config.ts's resolve.alias so tsc/IDE
-       resolve the same vendored source as the bundler (see src/vendor/elah). */
-    "baseUrl": ".",
+       resolve the same vendored source as the bundler (see src/vendor/elah).
+       Paths are relative to this file; TS 7 removed baseUrl. */
     "paths": {
       "@/*": ["./src/*"],
       "@elah/core": ["./src/vendor/elah/core/src/index.ts"],

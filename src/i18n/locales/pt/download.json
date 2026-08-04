@@ -213,6 +213,8 @@
     "playlist": "Lista de Reprodução",
     "live": "AO VIVO",
     "openFolder": "Mostrar na pasta",
+    "copyUrl": "Copiar URL",
+    "copied": "Copiado",
     "changeOutputFolder": "Alterar pasta",
     "outputFolder": "Pasta de download: {{path}}",
     "rename": "Renomear",

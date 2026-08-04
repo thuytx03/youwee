@@ -207,6 +207,8 @@
     },
     "summarize": "Tóm tắt",
     "openFolder": "Mở vị trí file",
+    "copyUrl": "Sao chép URL",
+    "copied": "Đã sao chép",
     "changeOutputFolder": "Đổi folder",
     "outputFolder": "Folder tải xuống: {{path}}",
     "rename": "Đổi tên",

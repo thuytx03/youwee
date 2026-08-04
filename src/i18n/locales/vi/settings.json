@@ -11,7 +11,8 @@
     "ai": "Tính năng AI",
     "network": "Mạng & Xác thực",
     "system": "Hệ thống",
-    "about": "Giới thiệu"
+    "about": "Giới thiệu",
+    "pluginStore": "Plugin Store"
   },
   "search": {
     "placeholder": "Tìm kiếm cài đặt...",
@@ -56,6 +57,16 @@
     "numberPlaylistItemsDesc": "Thêm số thứ tự vào đầu tên file khi tải playlist đã tách thành queue",
     "numberQueueItems": "Đánh số item trong hàng đợi",
     "numberQueueItemsDesc": "Thêm số thứ tự hàng đợi vào đầu tên file khi tải nhiều video thường",
+    "filenameMetadata": "Metadata trong tên file",
+    "filenameMetadataDesc": "Thêm thông tin video đã chọn trước tiêu đề file",
+    "filenameMetadataFields": {
+      "uploadDate": "Ngày đăng",
+      "viewCount": "Lượt xem",
+      "uploader": "Người đăng",
+      "duration": "Thời lượng",
+      "resolution": "Độ phân giải",
+      "videoId": "ID video"
+    },
     "splitEmbeddedChapters": "Tách chapter có sẵn",
     "splitEmbeddedChaptersDesc": "Tạo file riêng từ các chapter đã có trong video",
     "numberChapterFiles": "Đánh số file chapter",
@@ -877,5 +888,41 @@
     "hideDockOnClose": "Ẩn biểu tượng Dock khi đóng",
     "hideDockOnCloseDesc": "Xóa ứng dụng khỏi Dock khi đóng cửa sổ. Dùng biểu tượng system tray để mở lại.",
     "noSettingsForPlatform": "Không có cài đặt hệ thống nào cho nền tảng này."
+  },
+  "pluginStore": {
+    "title": "Plugin Store",
+    "description": "Khám phá và cài plugin cho Youwee.",
+    "searchPlaceholder": "Tìm plugin, quyền hoặc danh mục...",
+    "allCategories": "Tất cả danh mục",
+    "loading": "Đang tải Plugin Store...",
+    "loadError": "Không tải được Plugin Store",
+    "noResults": "Không có plugin nào khớp bộ lọc.",
+    "install": "Cài đặt",
+    "installing": "Đang cài...",
+    "installed": "Đã cài",
+    "openInPlugins": "Mở trong Plugins",
+    "repository": "Repository",
+    "permissions": "Quyền",
+    "noPermissions": "Không cần quyền bổ sung",
+    "installSuccessTitle": "Đã cài plugin",
+    "installSuccessMessage": "{{name}} đã được cài. Mở Plugins để bật và cấu hình.",
+    "installErrorTitle": "Cài plugin thất bại",
+    "cancel": "Hủy",
+    "confirmInstall": "Cài plugin",
+    "thirdPartyTitle": "Cài plugin bên thứ ba?",
+    "thirdPartyDescription": "Plugin này không được phát hành bởi Youwee. Hãy xem repository và các quyền yêu cầu trước khi cài.",
+    "thirdPartySecurityNote": "Youwee đã kiểm tra checksum và chữ ký của gói. Sau khi cài, bạn vẫn cần tự bật plugin và cấp quyền trong Plugins.",
+    "publisherFilter": {
+      "all": "Tất cả",
+      "official": "Chính thức",
+      "third-party": "Bên thứ ba"
+    },
+    "publisherKind": {
+      "official": "Chính thức",
+      "third-party": "Bên thứ ba"
+    },
+    "publisher": "Nhà phát hành",
+    "thirdPartyNotice": "Plugin bên thứ ba không được Youwee kiểm duyệt. Hãy tự kiểm tra và tin tưởng trước khi cài.",
+    "refresh": "Làm mới"
   }
 }

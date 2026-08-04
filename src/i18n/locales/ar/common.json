@@ -31,7 +31,10 @@
     "ja": "اليابانية",
     "es": "الإسبانية",
     "label": "اللغة",
-    "select": "اختر اللغة"
+    "select": "اختر اللغة",
+    "tr": "Türkçe",
+    "uz": "O‘zbekcha",
+    "ro": "Română"
   },
   "actions": {
     "cancel": "إلغاء"

@@ -51,6 +51,8 @@ describe('universal codec settings', () => {
       ytdlpAdvancedOptionsEnabled: false,
       ytdlpAdvancedOptions: [],
       numberQueueItems: true,
+      filenameMetadataEnabled: true,
+      filenameMetadataFields: ['uploadDate', 'viewCount'],
       splitEmbeddedChapters: false,
       numberChapterFiles: true,
       autoOrganizeCollections: false,
@@ -60,6 +62,8 @@ describe('universal codec settings', () => {
 
     expect(snapshot.videoCodec).toBe('av1');
     expect(snapshot.numberQueueItems).toBe(true);
+    expect(snapshot.filenameMetadataEnabled).toBe(true);
+    expect(snapshot.filenameMetadataFields).toEqual(['uploadDate', 'viewCount']);
   });
 
   test('resolves old queued items without video codec to auto', () => {

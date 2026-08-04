@@ -1,0 +1,63 @@
+{
+  "title": "Galeri",
+  "page": {
+    "systemManagedOnly": "Yalnızca sistem yönetilir"
+  },
+  "missing": {
+    "title": "gallery-dl gereklidir",
+    "checking": "Sistemde gallery-dl kontrol ediliyor...",
+    "description": "Galerileri, koleksiyonları ve yaratıcı yayınlarını indirmek için gallery-dl'yi sisteminize yükleyin.",
+    "refresh": "Durumu yenile",
+    "openDependencies": "Bağımlılıkları aç",
+    "installGuide": "Kurulum kılavuzu"
+  },
+  "actions": {
+    "startDownload": "İndirmeyi başlat",
+    "stopDownload": "İndirmeyi durdur",
+    "clearAll": "Tümünü temizle"
+  },
+  "settings": {
+    "notSelected": "Klasör seç",
+    "selectFolder": "Çıktı klasörünü seçin",
+    "systemManagedOnly": "Yalnızca sistem yönetilir",
+    "advanced": "Gelişmiş",
+    "more": "Daha",
+    "parallelDownloads": "Paralel indirmeler",
+    "atATime": "Bir seferde {{count}}",
+    "systemManagedHint": "Youwee, yalnızca bu ekran için gallery-dl ikili sistemini kullanır."
+  },
+  "queue": {
+    "title": "Sıra",
+    "pending": "{{count}} bekliyor",
+    "clearCompleted": "Tamamlananları temizle ({{count}})",
+    "openFolder": "Klasörü aç",
+    "remove": "Öğeyi kaldır",
+    "status": {
+      "pending": "Bekliyor",
+      "downloading": "İndiriliyor",
+      "completed": "Tamamlandı",
+      "failed": "Başarısız"
+    },
+    "empty": {
+      "title": "Başlamak için bir galeri URL'si bırakın",
+      "description": "gallery-dl'ya Universal'den daha iyi uyan resim galerileri, sanatçı yayınları, manga bölümleri ve diğer koleksiyon tarzı kaynaklar için bu ekranı kullanın.",
+      "moreCount": "ve daha fazlası",
+      "viewFullList": "Desteklenen siteleri görüntüle"
+    }
+  },
+  "urlInput": {
+    "single": "Tek",
+    "singleHint": "Tek bir galeri URL'si yapıştırın",
+    "multiple": "Çoklu",
+    "multipleHint": "Birden fazla galeri URL ekleyin (satır başına bir tane)",
+    "paste": "Yapıştır",
+    "import": "İçe aktar",
+    "detectedMultiple": "{{count}} URL algılandı",
+    "placeholder": "Bir galeri, gönderi veya içerik üretici URL'si yapıştırın",
+    "placeholderMultiple": "Satır başına bir URL. # ile başlayan satırlar dikkate alınmaz.",
+    "urlCount": "{{count}} URL",
+    "urlCount_plural": "{{count}} URL",
+    "clearInput": "Temizle",
+    "addToQueue": "Ekle"
+  }
+}

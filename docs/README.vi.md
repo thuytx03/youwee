@@ -14,7 +14,9 @@
   ![Español](https://img.shields.io/badge/lang-Espa%C3%B1ol-C60B1E)
   [![Vote for next language](https://img.shields.io/badge/Vote-Ngôn_ngữ_tiếp_theo-orange?logo=github)](https://github.com/vanloctech/youwee/discussions/18)
 
-  <img src="../src-tauri/icons/icon.png" alt="Youwee Logo" width="128" height="128">
+  <a href="https://youwee.app">
+    <img src="../src-tauri/icons/icon.png" alt="Youwee Logo" width="128" height="128">
+  </a>
   
   **GUI yt-dlp & trình tải/xử lý video đẹp mắt, toàn diện - miễn phí & mã nguồn mở**
 
@@ -154,14 +156,6 @@ bun run tauri dev
 # Build cho production
 bun run tauri build
 ```
-
-## Nhà tài trợ
-
-<div align="center">
-  <a href="https://www.atlascloud.ai/">
-    <img src="sponsors/atlascloud.svg" alt="Atlas Cloud" width="220">
-  </a>
-</div>
 
 ## Đóng góp
 

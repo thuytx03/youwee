@@ -290,7 +290,7 @@
 
   function handleStorageChanged(changes, areaName) {
     if (areaName !== 'local') return;
-    if (!changes || !changes[STORAGE_KEY]) return;
+    if (!changes?.[STORAGE_KEY]) return;
     floatingPrefsChangedInPopup = false;
     floatingPrefs = normalizeFloatingPrefs(changes[STORAGE_KEY].newValue);
     updateFloatingToggleUi();

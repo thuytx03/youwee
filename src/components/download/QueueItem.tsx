@@ -1,9 +1,11 @@
 import {
+  Check,
   CheckCircle2,
   ChevronDown,
   ChevronUp,
   CircleSlash,
   Clock,
+  Copy,
   FolderOpen,
   HardDrive,
   Lightbulb,
@@ -135,6 +137,7 @@ export function QueueItem({
   const [renameName, setRenameName] = useState('');
   const [renameError, setRenameError] = useState<string | null>(null);
   const [isRenaming, setIsRenaming] = useState(false);
+  const [copiedUrl, setCopiedUrl] = useState(false);
   // Use background task for summary - taskId is based on item.id
   const taskId = `queue-${item.id}`;
   const task = ai.getSummaryTask(taskId);
@@ -238,6 +241,16 @@ export function QueueItem({
       console.error('Failed to open completed file location:', error);
     }
   }, [item.completedFilepath]);
+
+  const handleCopyUrl = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(item.url);
+      setCopiedUrl(true);
+      window.setTimeout(() => setCopiedUrl(false), 2000);
+    } catch (error) {
+      console.error('Failed to copy queue URL:', error);
+    }
+  }, [item.url]);
 
   const handleCancelRename = useCallback(() => {
     setShowRenameEditor(false);
@@ -597,6 +610,16 @@ export function QueueItem({
                 {t('queue.openFolder')}
               </button>
             )}
+
+            <button
+              type="button"
+              onClick={handleCopyUrl}
+              aria-label={t('queue.copyUrl')}
+              className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-md border border-dashed border-muted-foreground/30 text-muted-foreground hover:border-muted-foreground/50 hover:text-foreground hover:bg-muted/50 transition-colors font-medium"
+            >
+              {copiedUrl ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+              {copiedUrl ? t('queue.copied') : t('queue.copyUrl')}
+            </button>
 
             {isCompleted && item.completedFilepath && (
               <button

@@ -3,6 +3,7 @@ import {
   buildItemDownloadSettingsSnapshot,
   createDefaultDownloadSettings,
   refreshItemPluginWorkflowSnapshots,
+  sanitizeFilenameMetadataFields,
   serializeDownloadSettings,
 } from '../src/lib/download-settings';
 import type {
@@ -105,6 +106,46 @@ describe('download settings downloaded video memory', () => {
 
     expect(saved.rememberDownloadedVideos).toBe(true);
     expect(saved.duplicateDownloadHandling).toBe('allow');
+  });
+});
+
+describe('download settings filename metadata', () => {
+  test('defaults filename metadata off', () => {
+    const settings = createDefaultDownloadSettings({});
+
+    expect(settings.filenameMetadataEnabled).toBe(false);
+    expect(settings.filenameMetadataFields).toEqual([]);
+  });
+
+  test('persists filename metadata fields', () => {
+    const saved = serializeDownloadSettings(
+      createDefaultDownloadSettings({
+        filenameMetadataEnabled: true,
+        filenameMetadataFields: ['uploadDate', 'viewCount', 'videoId'],
+      }),
+    );
+
+    expect(saved.filenameMetadataEnabled).toBe(true);
+    expect(saved.filenameMetadataFields).toEqual(['uploadDate', 'viewCount', 'videoId']);
+  });
+
+  test('sanitizes unknown and duplicate filename metadata fields', () => {
+    expect(
+      sanitizeFilenameMetadataFields(['uploadDate', '--output', 'viewCount', 'uploadDate', null]),
+    ).toEqual(['uploadDate', 'viewCount']);
+  });
+
+  test('snapshots filename metadata into queued items', () => {
+    const settings = createDefaultDownloadSettings({
+      filenameMetadataEnabled: true,
+      filenameMetadataFields: ['uploader', 'duration'],
+    });
+
+    const snapshot = buildItemDownloadSettingsSnapshot(settings);
+
+    expect(snapshot.filenameMetadataEnabled).toBe(true);
+    expect(snapshot.filenameMetadataFields).toEqual(['uploader', 'duration']);
+    expect(snapshot.filenameMetadataFields).not.toBe(settings.filenameMetadataFields);
   });
 });
 

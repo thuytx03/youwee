@@ -8,6 +8,18 @@ và dự án tuân theo [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ## [Unreleased]
 
 ### Sửa lỗi
+- **Thêm vào hàng đợi trên macOS Monterey** - Sửa lỗi nút Add không phản hồi trên WebView macOS cũ chưa hỗ trợ API UUID hiện đại của trình duyệt
+
+## [0.20.1] - 2026-08-01
+
+### Thêm mới
+- **Plugin Store** - Thêm menu riêng trong Cài đặt để tìm và cài các gói plugin đã được kiểm soát từ catalog live trên GitHub
+- **Metadata trong tên file** - Thêm tùy chọn trong Download để thêm thông tin video đã chọn như ngày đăng, lượt xem, người đăng, thời lượng, độ phân giải hoặc ID video vào đầu tên file
+- **Ngôn ngữ tiếng Romania** - Thêm bản dịch tiếng Romania cho giao diện ứng dụng
+- **Ngôn ngữ tiếng Uzbek** - Thêm bản dịch tiếng Uzbek cho giao diện ứng dụng
+- **Ngôn ngữ tiếng Thổ Nhĩ Kỳ** - Thêm bản dịch tiếng Thổ Nhĩ Kỳ cho giao diện ứng dụng
+
+### Sửa lỗi
 - **Icon AppImage** - Cập nhật Tauri build tooling và các dependency tương thích để gói AppImage Linux giữ đúng metadata icon desktop
 
 ## [0.20.0] - 2026-07-08

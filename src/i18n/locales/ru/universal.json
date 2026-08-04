@@ -122,6 +122,8 @@
     "showLess": "Показать меньше",
     "regenerateSummary": "Пересоздать сводку",
     "openFolder": "Показать в папке",
+    "copyUrl": "Копировать URL",
+    "copied": "Скопировано",
     "changeOutputFolder": "Изменить папку",
     "outputFolder": "Папка загрузки: {{path}}",
     "rename": "Переименовать",

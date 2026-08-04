@@ -28,13 +28,8 @@ fn normalized_summary_max_tokens(custom_max_tokens: Option<u32>) -> Option<u32> 
 /// We intentionally maintain a short allowlist of legacy families because they
 /// are effectively frozen, while newer OpenAI models have consistently moved to
 /// the new parameter style.
-const OPENAI_LEGACY_MODEL_PREFIXES: &[&str] = &[
-    "gpt-3.5",
-    "gpt-4-",
-    "gpt-4o",
-    "gpt-4.1",
-    "chatgpt-4o",
-];
+const OPENAI_LEGACY_MODEL_PREFIXES: &[&str] =
+    &["gpt-3.5", "gpt-4-", "gpt-4o", "gpt-4.1", "chatgpt-4o"];
 
 fn openai_is_legacy_model(model: &str) -> bool {
     let model = model.to_lowercase();
@@ -88,7 +83,8 @@ fn adjust_openai_request(body: &mut serde_json::Value, error: &OpenAIErrorDetail
 
     let names_temperature = |s: &str| s.contains("temperature");
     // Substring match, so this also fires for "max_completion_tokens".
-    let names_max_tokens = |s: &str| s.contains("max_tokens") || s.contains("max_completion_tokens");
+    let names_max_tokens =
+        |s: &str| s.contains("max_tokens") || s.contains("max_completion_tokens");
 
     let targets_temperature = error
         .param
@@ -142,7 +138,9 @@ async fn post_openai_chat(
 
     // Initial attempt plus one retry per successful parameter correction.
     for adjustments_left in (0..=MAX_OPENAI_PARAM_ADJUSTMENTS).rev() {
-        let response = send(&body).await.map_err(|e| AIError::NetworkError(e.to_string()))?;
+        let response = send(&body)
+            .await
+            .map_err(|e| AIError::NetworkError(e.to_string()))?;
         let status = response.status();
         let response_text = response.text().await.unwrap_or_default();
 
@@ -1309,10 +1307,7 @@ mod tests {
         let mut body = serde_json::json!({
             "temperature": 0.7
         });
-        let error = error_with_param(
-            "This model does not support setting temperature.",
-            None,
-        );
+        let error = error_with_param("This model does not support setting temperature.", None);
 
         assert!(adjust_openai_request(&mut body, &error));
         assert!(body.get("temperature").is_none());

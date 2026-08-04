@@ -1,0 +1,96 @@
+{
+  "schemaVersion": 1,
+  "updatedAt": "2026-07-31",
+  "plugins": [
+    {
+      "pluginId": "com.vanloctech.notification-webhooks",
+      "slug": "notification-webhooks",
+      "name": "Notification Webhooks",
+      "description": "Send clear Youwee download notifications to Telegram or Discord.",
+      "icon": "globe",
+      "publisher": {
+        "kind": "official",
+        "name": "Loc Nguyen",
+        "repositoryOwner": "vanloctech"
+      },
+      "repository": "https://github.com/vanloctech/youwee-plugin-notification-webhooks",
+      "categories": ["notifications", "automation"],
+      "tags": ["telegram", "discord", "webhook", "notifications"],
+      "triggers": ["download.completed", "download.failed"],
+      "permissionsSummary": ["Network access"],
+      "latestVersion": "1.0.0",
+      "versions": [
+        {
+          "version": "1.0.0",
+          "releaseTag": "v1.0.0",
+          "assetName": "notification-webhooks.ywp",
+          "packageUrl": "https://github.com/vanloctech/youwee-plugin-notification-webhooks/releases/download/v1.0.0/notification-webhooks.ywp",
+          "packageSize": 83128,
+          "sha256": "680925c72a9d2bd6b799eca71f470cadeb4a43b30ec03b1c37a19c3f27d88dc1",
+          "signerFingerprint": "cade474acf50cc7510937e8cb7ff357faca7e23c1548c00f26bf773b8feb982e",
+          "minAppVersion": "0.15.0"
+        }
+      ]
+    },
+    {
+      "pluginId": "media-converter",
+      "slug": "media-converter",
+      "name": "Media Converter",
+      "description": "Convert completed Youwee downloads into advanced FFmpeg formats not covered by built-in download options.",
+      "icon": "file-cog",
+      "publisher": {
+        "kind": "official",
+        "name": "Loc Nguyen",
+        "repositoryOwner": "vanloctech"
+      },
+      "repository": "https://github.com/vanloctech/youwee-plugin-media-converter",
+      "categories": ["processing", "conversion"],
+      "tags": ["ffmpeg", "convert", "media", "post-processing"],
+      "triggers": ["download.completed"],
+      "permissionsSummary": ["Read downloaded files", "Write converted files", "Run FFmpeg"],
+      "latestVersion": "1.0.0",
+      "versions": [
+        {
+          "version": "1.0.0",
+          "releaseTag": "v1.0.0",
+          "assetName": "media-converter.ywp",
+          "packageUrl": "https://github.com/vanloctech/youwee-plugin-media-converter/releases/download/v1.0.0/media-converter.ywp",
+          "packageSize": 86576,
+          "sha256": "efc1a810f36dfc91c8e5327dd4eedf7fbb8f3ab0a5285e6ee1e34f3bcbe7351d",
+          "signerFingerprint": "676a6471b0496ed9c066b0c6444257d2bcbd2a71ed5e9d626dc0c97018575133",
+          "minAppVersion": "0.17.1"
+        }
+      ]
+    },
+    {
+      "pluginId": "com.vanloctech.gg-drive-upload",
+      "slug": "google-drive-upload",
+      "name": "Google Drive Upload",
+      "description": "Upload completed downloads to a configured Google Drive folder.",
+      "icon": "puzzle",
+      "publisher": {
+        "kind": "official",
+        "name": "Loc Nguyen",
+        "repositoryOwner": "vanloctech"
+      },
+      "repository": "https://github.com/vanloctech/youwee-plugin-gg-drive-upload",
+      "categories": ["cloud", "automation"],
+      "tags": ["google drive", "upload", "cloud", "backup"],
+      "triggers": ["download.completed"],
+      "permissionsSummary": ["Network access", "Read downloaded files"],
+      "latestVersion": "1.0.0",
+      "versions": [
+        {
+          "version": "1.0.0",
+          "releaseTag": "v1.0.0",
+          "assetName": "google-drive-upload.ywp",
+          "packageUrl": "https://github.com/vanloctech/youwee-plugin-gg-drive-upload/releases/download/v1.0.0/google-drive-upload.ywp",
+          "packageSize": 77416,
+          "sha256": "2e923022f28a0973266e0b0338e321c0972e9489e78c0e2e6db68dfa7800f4b9",
+          "signerFingerprint": "21dc3b928f3b9a8910a5018b3c6a20c04690e427dd509d10c3ad8cf770165aab",
+          "minAppVersion": "0.15.0"
+        }
+      ]
+    }
+  ]
+}

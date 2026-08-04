@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Youwee Plugin Store Catalog",
+  "type": "object",
+  "required": ["schemaVersion", "updatedAt", "plugins"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "updatedAt": { "type": "string" },
+    "plugins": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/plugin" }
+    }
+  },
+  "$defs": {
+    "plugin": {
+      "type": "object",
+      "required": [
+        "pluginId",
+        "slug",
+        "name",
+        "description",
+        "publisher",
+        "repository",
+        "categories",
+        "tags",
+        "triggers",
+        "permissionsSummary",
+        "latestVersion",
+        "versions"
+      ],
+      "properties": {
+        "pluginId": { "type": "string" },
+        "slug": { "type": "string" },
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "icon": { "type": "string" },
+        "publisher": {
+          "type": "object",
+          "required": ["kind", "name", "repositoryOwner"],
+          "properties": {
+            "kind": { "enum": ["official", "third-party"] },
+            "name": { "type": "string" },
+            "repositoryOwner": { "type": "string" }
+          }
+        },
+        "repository": { "type": "string" },
+        "categories": { "type": "array", "items": { "type": "string" } },
+        "tags": { "type": "array", "items": { "type": "string" } },
+        "triggers": { "type": "array", "items": { "type": "string" } },
+        "permissionsSummary": { "type": "array", "items": { "type": "string" } },
+        "latestVersion": { "type": "string" },
+        "versions": { "type": "array", "items": { "$ref": "#/$defs/version" } }
+      }
+    },
+    "version": {
+      "type": "object",
+      "required": [
+        "version",
+        "releaseTag",
+        "assetName",
+        "packageUrl",
+        "packageSize",
+        "sha256",
+        "signerFingerprint",
+        "minAppVersion"
+      ],
+      "properties": {
+        "version": { "type": "string" },
+        "releaseTag": { "type": "string" },
+        "assetName": { "type": "string" },
+        "packageUrl": { "type": "string" },
+        "packageSize": { "type": "number" },
+        "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "signerFingerprint": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "minAppVersion": { "type": "string" }
+      }
+    }
+  }
+}

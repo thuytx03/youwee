@@ -4,8 +4,9 @@ use crate::services::{
     approve_plugin_permissions_internal, attach_plugin_workspace_internal,
     create_plugin_workspace_internal, enqueue_plugin_trigger_workflow, get_plugin_details_internal,
     get_plugin_trigger_workflow_internal, get_runtime_provider_status_internal,
-    inspect_plugin_package_internal, install_plugin_package_internal, list_plugins_internal,
-    list_runtime_providers_internal, open_plugin_directory_internal,
+    inspect_plugin_package_internal, install_plugin_package_internal,
+    list_plugin_store_entries_internal, list_plugins_internal, list_runtime_providers_internal,
+    open_plugin_directory_internal, prepare_plugin_store_package_internal,
     set_default_provider_for_language_internal, set_plugin_provider_internal,
     set_plugin_runtime_locale_internal, set_plugin_timeout_internal, uninstall_plugin_internal,
     update_plugin_config_values_internal, update_plugin_state_internal,
@@ -14,9 +15,9 @@ use crate::services::{
     PluginRuntimeLocaleInput,
 };
 use crate::types::{
-    PluginPackageInspection, PluginProvider, PluginRuntimeLanguage, PluginSummary,
-    PluginTriggerWorkflow, PluginWorkflowStepSnapshot, PluginWorkspaceSummary,
-    PostDownloadPluginPayload, RuntimeProviderStatus,
+    PluginPackageInspection, PluginProvider, PluginRuntimeLanguage, PluginStoreEntry,
+    PluginSummary, PluginTriggerWorkflow, PluginWorkflowStepSnapshot, PluginWorkspaceSummary,
+    PostDownloadPluginPayload, PreparedPluginStorePackage, RuntimeProviderStatus,
 };
 
 #[tauri::command]
@@ -46,6 +47,23 @@ pub async fn install_plugin_package(
     trusted: bool,
 ) -> Result<PluginSummary, String> {
     install_plugin_package_internal(&app, path, trusted).await
+}
+
+#[tauri::command]
+pub async fn list_plugin_store_entries(
+    app: AppHandle,
+    force_refresh: Option<bool>,
+) -> Result<Vec<PluginStoreEntry>, String> {
+    list_plugin_store_entries_internal(app, force_refresh.unwrap_or(false)).await
+}
+
+#[tauri::command]
+pub async fn prepare_plugin_store_package(
+    app: AppHandle,
+    plugin_id: String,
+    version: Option<String>,
+) -> Result<PreparedPluginStorePackage, String> {
+    prepare_plugin_store_package_internal(&app, plugin_id, version).await
 }
 
 #[tauri::command]

@@ -117,6 +117,8 @@
     },
     "summarize": "摘要",
     "openFolder": "打开所在文件夹",
+    "copyUrl": "复制链接",
+    "copied": "已复制",
     "changeOutputFolder": "更改文件夹",
     "outputFolder": "下载文件夹：{{path}}",
     "rename": "重命名",

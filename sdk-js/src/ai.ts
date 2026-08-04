@@ -189,6 +189,5 @@ function parseJsonFromModelOutput<T>(raw: string): T {
   }
 }
 
+export type { AIBridge, AIConfigSnapshot, AIExtractJsonOptions, AISummarizeOptions, AITextOptions };
 export { parseJsonFromModelOutput };
-
-export type { AIConfigSnapshot, AITextOptions, AISummarizeOptions, AIExtractJsonOptions, AIBridge };

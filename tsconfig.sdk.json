@@ -4,7 +4,7 @@
     "target": "ES2022",
     "lib": ["ES2022", "DOM"],
     "module": "CommonJS",
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "rootDir": "./sdk-js/src",
     "outDir": "./sdk-js/dist",
     "declaration": true,

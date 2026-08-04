@@ -348,6 +348,92 @@ pub struct PluginPackageInspection {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum PluginStorePublisherKind {
+    Official,
+    ThirdParty,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PluginStorePublisher {
+    pub kind: PluginStorePublisherKind,
+    pub name: String,
+    pub repository_owner: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PluginStoreVersion {
+    pub version: String,
+    pub release_tag: String,
+    pub asset_name: String,
+    pub package_url: String,
+    pub package_size: u64,
+    pub sha256: String,
+    pub signer_fingerprint: String,
+    pub min_app_version: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum PluginStoreInstalledStatus {
+    NotInstalled,
+    Installed,
+}
+
+impl Default for PluginStoreInstalledStatus {
+    fn default() -> Self {
+        Self::NotInstalled
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PluginStoreEntry {
+    pub plugin_id: String,
+    pub slug: String,
+    pub name: String,
+    pub description: String,
+    #[serde(default)]
+    pub icon: Option<String>,
+    pub publisher: PluginStorePublisher,
+    pub repository: String,
+    #[serde(default)]
+    pub categories: Vec<String>,
+    #[serde(default)]
+    pub tags: Vec<String>,
+    #[serde(default)]
+    pub triggers: Vec<String>,
+    #[serde(default)]
+    pub permissions_summary: Vec<String>,
+    pub latest_version: String,
+    pub versions: Vec<PluginStoreVersion>,
+    #[serde(default)]
+    pub installed_status: PluginStoreInstalledStatus,
+    #[serde(default)]
+    pub installed_version: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PluginStoreCatalog {
+    pub schema_version: u32,
+    pub updated_at: String,
+    #[serde(default)]
+    pub plugins: Vec<PluginStoreEntry>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PreparedPluginStorePackage {
+    pub path: String,
+    pub entry: PluginStoreEntry,
+    pub version: PluginStoreVersion,
+    pub inspection: PluginPackageInspection,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PluginWorkspaceSummary {
     pub plugin_id: String,

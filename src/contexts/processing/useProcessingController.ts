@@ -2,6 +2,7 @@ import type { UnlistenFn } from '@tauri-apps/api/event';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toAssetUrl } from '@/lib/asset-access';
 import { localizeUnknownError } from '@/lib/backend-error';
+import { createClientId } from '@/lib/client-id';
 import type {
   ChatAttachment,
   ChatMessage,
@@ -287,7 +288,7 @@ export function useProcessingController(): ProcessingContextValue {
       setMessages((prev) => [
         ...prev,
         {
-          id: crypto.randomUUID(),
+          id: createClientId(),
           role,
           content,
           command: options?.command,
@@ -531,7 +532,7 @@ export function useProcessingController(): ProcessingContextValue {
         }
 
         newAttachments.push({
-          id: crypto.randomUUID(),
+          id: createClientId(),
           path: info.path,
           kind: info.kind,
           name: info.filename,
@@ -584,7 +585,7 @@ export function useProcessingController(): ProcessingContextValue {
 
       // Add user message with attachments
       const userMessage: ChatMessage = {
-        id: crypto.randomUUID(),
+        id: createClientId(),
         role: 'user',
         content,
         timestamp: new Date().toISOString(),
@@ -626,7 +627,7 @@ export function useProcessingController(): ProcessingContextValue {
 
         // Add assistant message with explanation
         const assistantMessage: ChatMessage = {
-          id: crypto.randomUUID(),
+          id: createClientId(),
           role: 'assistant',
           content:
             result.explanation +
@@ -643,7 +644,7 @@ export function useProcessingController(): ProcessingContextValue {
         setProgress(null);
         setCompletedOutputPath(null);
 
-        const jobId = crypto.randomUUID();
+        const jobId = createClientId();
         setCurrentJobId(jobId);
 
         // Save job to history
@@ -726,7 +727,7 @@ export function useProcessingController(): ProcessingContextValue {
 
         // Add to chat
         const assistantMessage: ChatMessage = {
-          id: crypto.randomUUID(),
+          id: createClientId(),
           role: 'assistant',
           content: `**${taskType.replace('_', ' ').toUpperCase()}**\n\n${result.explanation}`,
           timestamp: new Date().toISOString(),
@@ -755,7 +756,7 @@ export function useProcessingController(): ProcessingContextValue {
       setProgress(null);
       setCompletedOutputPath(null);
 
-      const jobId = crypto.randomUUID();
+      const jobId = createClientId();
       setCurrentJobId(jobId);
 
       try {

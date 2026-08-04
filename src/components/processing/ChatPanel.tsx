@@ -301,7 +301,7 @@ export function ChatPanel({
   );
 
   return (
-    // biome-ignore lint/a11y/useSemanticElements: drag-drop container needs event handlers
+    // biome-ignore lint/a11y/useSemanticElements: drag-drop container needs event handlers and a region role.
     <div
       role="region"
       className="w-[40%] border-l border-border flex flex-col bg-gradient-to-b from-muted/30 to-background overflow-hidden relative"

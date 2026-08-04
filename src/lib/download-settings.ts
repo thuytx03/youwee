@@ -5,6 +5,7 @@ import {
 } from '@/lib/download-retry';
 import type {
   DownloadSettings,
+  FilenameMetadataField,
   ItemDownloadSettings,
   ItemUniversalSettings,
   PluginWorkflowSnapshotMap,
@@ -19,7 +20,44 @@ interface SnapshotExtras {
   overrides?: Partial<ItemDownloadSettings>;
 }
 
+export const DEFAULT_FILENAME_METADATA_FIELDS: FilenameMetadataField[] = [
+  'uploadDate',
+  'viewCount',
+];
+
+export const FILENAME_METADATA_FIELDS: FilenameMetadataField[] = [
+  'uploadDate',
+  'viewCount',
+  'uploader',
+  'duration',
+  'resolution',
+  'videoId',
+];
+
+const FILENAME_METADATA_FIELD_SET = new Set<FilenameMetadataField>(FILENAME_METADATA_FIELDS);
+
+export function sanitizeFilenameMetadataFields(value: unknown): FilenameMetadataField[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  const fields: FilenameMetadataField[] = [];
+  for (const field of value) {
+    if (
+      typeof field === 'string' &&
+      FILENAME_METADATA_FIELD_SET.has(field as FilenameMetadataField) &&
+      !fields.includes(field as FilenameMetadataField)
+    ) {
+      fields.push(field as FilenameMetadataField);
+    }
+  }
+
+  return fields;
+}
+
 export function createDefaultDownloadSettings(saved: Partial<DownloadSettings>): DownloadSettings {
+  const filenameMetadataFields = sanitizeFilenameMetadataFields(saved.filenameMetadataFields);
+
   return {
     quality: saved.quality || 'best',
     format: saved.format || 'mp4',
@@ -41,6 +79,8 @@ export function createDefaultDownloadSettings(saved: Partial<DownloadSettings>):
     embedThumbnail: saved.embedThumbnail === true,
     numberPlaylistItems: saved.numberPlaylistItems === true,
     numberQueueItems: saved.numberQueueItems === true,
+    filenameMetadataEnabled: saved.filenameMetadataEnabled === true,
+    filenameMetadataFields,
     splitEmbeddedChapters: saved.splitEmbeddedChapters === true,
     numberChapterFiles: saved.numberChapterFiles !== false,
     autoOrganizeCollections: saved.autoOrganizeCollections === true,
@@ -100,6 +140,8 @@ export function serializeDownloadSettings(settings: DownloadSettings): Partial<D
     embedThumbnail: settings.embedThumbnail,
     numberPlaylistItems: settings.numberPlaylistItems,
     numberQueueItems: settings.numberQueueItems,
+    filenameMetadataEnabled: settings.filenameMetadataEnabled,
+    filenameMetadataFields: sanitizeFilenameMetadataFields(settings.filenameMetadataFields),
     splitEmbeddedChapters: settings.splitEmbeddedChapters,
     numberChapterFiles: settings.numberChapterFiles,
     autoOrganizeCollections: settings.autoOrganizeCollections,
@@ -153,6 +195,8 @@ export function buildItemDownloadSettingsSnapshot(
     skipLive: settings.skipLive,
     numberPlaylistItems: settings.numberPlaylistItems,
     numberQueueItems: settings.numberQueueItems,
+    filenameMetadataEnabled: settings.filenameMetadataEnabled,
+    filenameMetadataFields: sanitizeFilenameMetadataFields(settings.filenameMetadataFields),
     splitEmbeddedChapters: settings.splitEmbeddedChapters,
     numberChapterFiles: settings.numberChapterFiles,
     autoOrganizeCollections: settings.autoOrganizeCollections,

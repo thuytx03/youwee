@@ -1,0 +1,63 @@
+{
+  "title": "Gallery",
+  "page": {
+    "systemManagedOnly": "Sistem administrat numai"
+  },
+  "missing": {
+    "title": "gallery-dl este necesar",
+    "checking": "Sistem de verificare gallery-dl...",
+    "description": "Instalați gallery-dl pe sistemul dvs. pentru a descărca galerii, colecții și fluxuri pentru creatori.",
+    "refresh": "Starea de reîmprospătare",
+    "openDependencies": "Deschideți dependențe",
+    "installGuide": "Ghid de instalare"
+  },
+  "actions": {
+    "startDownload": "Începeți descărcarea",
+    "stopDownload": "Oprește descărcarea",
+    "clearAll": "Ștergeți totul"
+  },
+  "settings": {
+    "notSelected": "Selectează folderul",
+    "selectFolder": "Selectați folderul de ieșire",
+    "systemManagedOnly": "Sistem administrat numai",
+    "advanced": "Avansat",
+    "more": "Mai mult",
+    "parallelDownloads": "Descărcări paralele",
+    "atATime": "{{count}} la un moment dat",
+    "systemManagedHint": "Youwee utilizează sistemul binar gallery-dl numai pentru acest ecran."
+  },
+  "queue": {
+    "title": "coadă",
+    "pending": "{{count}} în așteptare",
+    "clearCompleted": "Ștergere finalizată ({{count}})",
+    "openFolder": "Deschide folderul",
+    "remove": "Eliminați elementul",
+    "status": {
+      "pending": "În așteptare",
+      "downloading": "Descărcare",
+      "completed": "Terminat",
+      "failed": "A eșuat"
+    },
+    "empty": {
+      "title": "Aruncă o galerie URL pentru a începe",
+      "description": "Utilizați acest ecran pentru galerii de imagini, fluxuri pentru artiști, capitole manga și alte surse în stil colecție care se potrivesc mai bine cu gallery-dl decât Universal.",
+      "moreCount": "si multe altele",
+      "viewFullList": "Vizualizați site-urile acceptate"
+    }
+  },
+  "urlInput": {
+    "single": "Single",
+    "singleHint": "Lipiți o singură galerie URL",
+    "multiple": "Multiple",
+    "multipleHint": "Adăugați mai multe adrese URL de galerie (una pe linie)",
+    "paste": "Lipește",
+    "import": "Import",
+    "detectedMultiple": "Adresele URL {{count}} au fost detectate",
+    "placeholder": "Inserați o galerie, o postare sau un creator URL",
+    "placeholderMultiple": "Un URL pe linie. Liniile care încep cu # sunt ignorate.",
+    "urlCount": "{{count}} URL",
+    "urlCount_plural": "URL-uri {{count}}",
+    "clearInput": "Curăță",
+    "addToQueue": "Adaugă"
+  }
+}

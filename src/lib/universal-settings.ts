@@ -5,6 +5,7 @@ import {
 } from '@/lib/download-retry';
 import type {
   AudioBitrate,
+  FilenameMetadataField,
   Format,
   ItemUniversalSettings,
   PluginWorkflowSnapshotMap,
@@ -40,6 +41,8 @@ interface UniversalSnapshotOptions {
   ytdlpAdvancedOptionsEnabled: boolean;
   ytdlpAdvancedOptions: YtdlpAdvancedOption[];
   numberQueueItems: boolean;
+  filenameMetadataEnabled: boolean;
+  filenameMetadataFields: FilenameMetadataField[];
   splitEmbeddedChapters: boolean;
   numberChapterFiles: boolean;
   autoOrganizeCollections: boolean;
@@ -125,6 +128,8 @@ export function buildItemUniversalSettingsSnapshot(
     liveFromStart: settings.liveFromStart,
     skipLive: settings.skipLive,
     numberQueueItems: options.numberQueueItems,
+    filenameMetadataEnabled: options.filenameMetadataEnabled,
+    filenameMetadataFields: [...options.filenameMetadataFields],
     splitEmbeddedChapters: options.splitEmbeddedChapters,
     numberChapterFiles: options.numberChapterFiles,
     autoOrganizeCollections: options.autoOrganizeCollections,

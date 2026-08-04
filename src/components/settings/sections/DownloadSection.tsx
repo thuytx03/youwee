@@ -26,6 +26,11 @@ import { Switch } from '@/components/ui/switch';
 import { useDownload } from '@/contexts/download-context';
 import { clampAutoRetryDelaySeconds, clampAutoRetryMaxAttempts } from '@/lib/download-retry';
 import {
+  DEFAULT_FILENAME_METADATA_FIELDS,
+  FILENAME_METADATA_FIELDS,
+} from '@/lib/download-settings';
+import {
+  type FilenameMetadataField,
   SPONSORBLOCK_CATEGORIES,
   type SponsorBlockAction,
   type SponsorBlockCategory,
@@ -94,6 +99,43 @@ export function DownloadSection({ highlightId }: DownloadSectionProps) {
   const availableYtdlpOptionDefinitions = YTDLP_ADVANCED_OPTION_DEFINITIONS.filter(
     (definition) => definition.repeatable || !selectedYtdlpOptionIds.has(definition.id),
   );
+
+  const filenameMetadataPreviewParts: Record<FilenameMetadataField, string> = {
+    uploadDate: '2026-07-24',
+    viewCount: '1234567views',
+    uploader: 'Youwee Channel',
+    duration: '12m34s',
+    resolution: '1080p',
+    videoId: 'dQw4w9WgXcQ',
+  };
+
+  const filenameMetadataPreview = (() => {
+    const prefix = settings.filenameMetadataFields
+      .map((field) => filenameMetadataPreviewParts[field])
+      .filter(Boolean)
+      .join('_');
+
+    return prefix ? `${prefix}_My Video.mp4` : 'My Video.mp4';
+  })();
+
+  const updateFilenameMetadataEnabled = (filenameMetadataEnabled: boolean) => {
+    updateSettings({
+      filenameMetadataEnabled,
+      filenameMetadataFields:
+        filenameMetadataEnabled && settings.filenameMetadataFields.length === 0
+          ? DEFAULT_FILENAME_METADATA_FIELDS
+          : settings.filenameMetadataFields,
+    });
+  };
+
+  const toggleFilenameMetadataField = (field: FilenameMetadataField) => {
+    const fields = settings.filenameMetadataFields.includes(field)
+      ? settings.filenameMetadataFields.filter((value) => value !== field)
+      : FILENAME_METADATA_FIELDS.filter(
+          (value) => value === field || settings.filenameMetadataFields.includes(value),
+        );
+    updateSettings({ filenameMetadataFields: fields });
+  };
 
   const formatYtdlpOptionName = (definition: YtdlpAdvancedOptionDefinition) => {
     if (definition.id === 'youtubePlayerClient') {
@@ -239,6 +281,49 @@ export function DownloadSection({ highlightId }: DownloadSectionProps) {
               onCheckedChange={(numberQueueItems) => updateSettings({ numberQueueItems })}
             />
           </SettingsRow>
+
+          <SettingsRow
+            id="filename-metadata"
+            label={t('download.filenameMetadata')}
+            description={t('download.filenameMetadataDesc')}
+            highlight={highlightId === 'filename-metadata'}
+          >
+            <Switch
+              checked={settings.filenameMetadataEnabled}
+              onCheckedChange={updateFilenameMetadataEnabled}
+            />
+          </SettingsRow>
+
+          {settings.filenameMetadataEnabled && (
+            <div className="px-4 pb-4 pt-1 space-y-3 border-b border-border/50">
+              <div className="flex flex-wrap gap-2">
+                {FILENAME_METADATA_FIELDS.map((field) => {
+                  const selected = settings.filenameMetadataFields.includes(field);
+                  return (
+                    <button
+                      key={field}
+                      type="button"
+                      onClick={() => toggleFilenameMetadataField(field)}
+                      className={cn(
+                        'rounded-md border border-dashed px-2.5 py-1 text-xs font-medium transition-colors',
+                        selected
+                          ? 'border-primary/50 bg-primary/10 text-primary'
+                          : 'border-border/70 bg-background/70 text-muted-foreground hover:border-primary/40 hover:text-foreground',
+                      )}
+                    >
+                      {t(`download.filenameMetadataFields.${field}`)}
+                    </button>
+                  );
+                })}
+              </div>
+              <Badge
+                variant="secondary"
+                className="rounded-md bg-muted/50 px-2 py-1 font-mono text-[11px] text-muted-foreground"
+              >
+                {filenameMetadataPreview}
+              </Badge>
+            </div>
+          )}
 
           <SettingsRow
             id="split-embedded-chapters"

@@ -31,7 +31,10 @@
     "ja": "日本語",
     "es": "スペイン語",
     "label": "言語",
-    "select": "言語を選択"
+    "select": "言語を選択",
+    "tr": "Türkçe",
+    "uz": "O‘zbekcha",
+    "ro": "Română"
   },
   "actions": {
     "cancel": "キャンセル"

@@ -8,6 +8,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **macOS Monterey queue add** - Fixed the Add button doing nothing on older macOS WebViews that do not support modern browser UUID APIs
+
+## [0.20.1] - 2026-08-01
+
+### Added
+- **Plugin Store** - Added a dedicated Settings menu to discover and install verified plugin packages from the live GitHub catalog
+- **Filename metadata** - Added an optional Download setting to prefix filenames with selected video details such as upload date, views, uploader, duration, resolution, or video ID
+- **Romanian language** - Added Romanian translations for the app interface
+- **Uzbek language** - Added Uzbek translations for the app interface
+- **Turkish language** - Added Turkish translations for the app interface
+
+### Fixed
 - **AppImage icons** - Updated Tauri build tooling and compatible dependencies so Linux AppImage packages keep their desktop icon metadata
 
 ## [0.20.0] - 2026-07-08

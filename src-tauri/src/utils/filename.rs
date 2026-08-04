@@ -67,7 +67,10 @@ mod tests {
         add_safe_filename_args(&mut args, Some("G:\\Youwee"));
 
         assert!(args.contains(&"--trim-filenames".to_string()));
-        let trim_index = args.iter().position(|arg| arg == "--trim-filenames").unwrap();
+        let trim_index = args
+            .iter()
+            .position(|arg| arg == "--trim-filenames")
+            .unwrap();
         let trim_value: u32 = args[trim_index + 1].parse().unwrap();
         assert!(trim_value >= MIN_TRIM_FILENAMES);
         assert!(trim_value <= MAX_TRIM_FILENAMES);

@@ -464,6 +464,8 @@ pub fn run() {
             commands::get_plugin_details,
             commands::inspect_plugin_package,
             commands::install_plugin_package,
+            commands::list_plugin_store_entries,
+            commands::prepare_plugin_store_package,
             commands::uninstall_plugin,
             commands::attach_plugin_workspace,
             commands::create_plugin_workspace,

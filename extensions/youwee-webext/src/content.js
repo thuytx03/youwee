@@ -528,7 +528,7 @@
 
   function handleStorageChanged(changes, areaName) {
     if (areaName !== 'local') return;
-    if (!changes || !changes[STORAGE_KEY]) return;
+    if (!changes?.[STORAGE_KEY]) return;
 
     prefs = normalizePrefs(changes[STORAGE_KEY].newValue);
     collapsedState = getCollapsedForHost();

@@ -21,6 +21,7 @@ import {
   localizeBackendError,
   localizeProgressError,
 } from '@/lib/backend-error';
+import { createClientId } from '@/lib/client-id';
 import { buildDownloadDuplicateIdentity } from '@/lib/download-duplicates';
 import {
   clampAutoRetryDelaySeconds,
@@ -545,6 +546,8 @@ export function UniversalProvider({ children }: { children: ReactNode }) {
         ytdlpAdvancedOptionsEnabled: advancedSettings.ytdlpAdvancedOptionsEnabled,
         ytdlpAdvancedOptions: advancedSettings.ytdlpAdvancedOptions,
         numberQueueItems: downloadSettings.numberQueueItems,
+        filenameMetadataEnabled: downloadSettings.filenameMetadataEnabled,
+        filenameMetadataFields: downloadSettings.filenameMetadataFields,
         splitEmbeddedChapters: downloadSettings.splitEmbeddedChapters,
         numberChapterFiles: downloadSettings.numberChapterFiles,
         autoOrganizeCollections: downloadSettings.autoOrganizeCollections,
@@ -566,7 +569,7 @@ export function UniversalProvider({ children }: { children: ReactNode }) {
       );
       const queueTotal = currentItemsAfterReview.length + enqueueCandidates.length;
       const newItems: DownloadItem[] = enqueueCandidates.map((candidate, index) => ({
-        id: crypto.randomUUID(),
+        id: createClientId(),
         url: candidate.url,
         title: candidate.title,
         status: 'pending' as const,
@@ -595,6 +598,8 @@ export function UniversalProvider({ children }: { children: ReactNode }) {
     [
       downloadSettings.numberChapterFiles,
       downloadSettings.autoOrganizeCollections,
+      downloadSettings.filenameMetadataEnabled,
+      downloadSettings.filenameMetadataFields,
       downloadSettings.numberQueueItems,
       downloadSettings.splitEmbeddedChapters,
       enqueueQueuedWorkflowForItems,
@@ -653,6 +658,8 @@ export function UniversalProvider({ children }: { children: ReactNode }) {
         ytdlpAdvancedOptionsEnabled: advancedSettings.ytdlpAdvancedOptionsEnabled,
         ytdlpAdvancedOptions: advancedSettings.ytdlpAdvancedOptions,
         numberQueueItems: downloadSettings.numberQueueItems,
+        filenameMetadataEnabled: downloadSettings.filenameMetadataEnabled,
+        filenameMetadataFields: downloadSettings.filenameMetadataFields,
         splitEmbeddedChapters: downloadSettings.splitEmbeddedChapters,
         numberChapterFiles: downloadSettings.numberChapterFiles,
         autoOrganizeCollections: downloadSettings.autoOrganizeCollections,
@@ -671,7 +678,7 @@ export function UniversalProvider({ children }: { children: ReactNode }) {
       });
 
       const newItem: DownloadItem = {
-        id: crypto.randomUUID(),
+        id: createClientId(),
         url: normalizedUrl,
         title: normalizedUrl,
         status: 'pending',
@@ -694,6 +701,8 @@ export function UniversalProvider({ children }: { children: ReactNode }) {
     [
       downloadSettings.numberChapterFiles,
       downloadSettings.autoOrganizeCollections,
+      downloadSettings.filenameMetadataEnabled,
+      downloadSettings.filenameMetadataFields,
       downloadSettings.numberQueueItems,
       downloadSettings.splitEmbeddedChapters,
       enqueueQueuedWorkflowForItems,
@@ -864,7 +873,7 @@ export function UniversalProvider({ children }: { children: ReactNode }) {
 
   const renameCompletedItem = useCallback(async (id: string, newName: string) => {
     const item = itemsRef.current.find((i) => i.id === id);
-    if (!item || item.status !== 'completed') {
+    if (item?.status !== 'completed') {
       throw new Error('Only completed items can be renamed');
     }
 
@@ -997,6 +1006,8 @@ export function UniversalProvider({ children }: { children: ReactNode }) {
             queueIndex: item.queueIndex ?? null,
             queueTotal: item.queueTotal ?? null,
             numberQueueItems: itemSettings?.numberQueueItems ?? false,
+            filenameMetadataEnabled: itemSettings?.filenameMetadataEnabled ?? false,
+            filenameMetadataFields: itemSettings?.filenameMetadataFields ?? [],
             autoOrganizeCollections:
               itemSettings?.autoOrganizeCollections ?? downloadSettings.autoOrganizeCollections,
             playlistCollectionName: null,

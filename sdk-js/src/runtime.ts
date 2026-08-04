@@ -161,7 +161,7 @@ function isDangerousOutputFilename(path: string): boolean {
 }
 
 function assertSafePluginWritePath(path: string): void {
-  if (!path || !path.trim()) {
+  if (!path?.trim()) {
     throw new Error('Plugin write path is empty.');
   }
   if (isUrlLike(path)) {

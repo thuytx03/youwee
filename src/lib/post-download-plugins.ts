@@ -46,7 +46,7 @@ function snapshotFromWorkflow(
 ): PluginWorkflowStepSnapshot[] {
   return workflow.steps.reduce<PluginWorkflowStepSnapshot[]>((steps, step) => {
     const plugin = plugins.find((item) => item.manifest.id === step.pluginId);
-    if (!plugin || !plugin.installation.enabled) {
+    if (!plugin?.installation.enabled) {
       return steps;
     }
 

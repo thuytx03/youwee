@@ -3,6 +3,7 @@ export type SettingsSectionId =
   | 'dependencies'
   | 'download'
   | 'remote-download'
+  | 'plugin-store'
   | 'plugins'
   | 'extension'
   | 'ai'
@@ -75,6 +76,24 @@ export const SEARCHABLE_SETTINGS: SearchableSetting[] = [
     descriptionKey: 'general.languageRequestDesc',
     keywords: ['language', 'request', 'vote', 'discussion', 'github', 'locale', 'translation'],
     section: 'general',
+  },
+  {
+    id: 'plugin-store',
+    labelKey: 'pluginStore.title',
+    descriptionKey: 'pluginStore.description',
+    keywords: [
+      'plugin store',
+      'plugins',
+      'official',
+      'third-party',
+      'third party',
+      'marketplace',
+      'catalog',
+      'notification webhooks',
+      'media converter',
+      'google drive upload',
+    ],
+    section: 'plugin-store',
   },
   {
     id: 'library-delete-file-behavior',
@@ -447,6 +466,7 @@ export const SECTION_INFO: Record<SettingsSectionId, { label: string; icon: stri
   dependencies: { label: 'Dependencies', icon: 'Package' },
   download: { label: 'Download', icon: 'ArrowDownToLine' },
   'remote-download': { label: 'Remote Download', icon: 'MessageCircleCode' },
+  'plugin-store': { label: 'Plugin Store', icon: 'ShoppingBag' },
   plugins: { label: 'Plugins', icon: 'Atom' },
   extension: { label: 'Extension', icon: 'Puzzle' },
   ai: { label: 'AI Features', icon: 'Sparkles' },

@@ -348,7 +348,7 @@ export function SplitMediaDialog({
                   </div>
                 </div>
 
-                {/* biome-ignore lint/a11y/useSemanticElements: this timeline contains removable marker buttons, so it cannot be a native button. */}
+                {/* biome-ignore lint/a11y/useSemanticElements: the timeline includes removable marker buttons, so it cannot be a native button. */}
                 <div
                   role="button"
                   tabIndex={0}

@@ -117,6 +117,8 @@
     },
     "summarize": "Summarize",
     "openFolder": "Show in folder",
+    "copyUrl": "Copy URL",
+    "copied": "Copied",
     "changeOutputFolder": "Change folder",
     "outputFolder": "Download folder: {{path}}",
     "rename": "Rename",

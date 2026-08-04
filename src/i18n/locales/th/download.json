@@ -207,6 +207,8 @@
     },
     "summarize": "สรุป",
     "openFolder": "แสดงในโฟลเดอร์",
+    "copyUrl": "คัดลอก URL",
+    "copied": "คัดลอกแล้ว",
     "changeOutputFolder": "เปลี่ยนโฟลเดอร์",
     "outputFolder": "โฟลเดอร์ดาวน์โหลด: {{path}}",
     "rename": "เปลี่ยนชื่อ",

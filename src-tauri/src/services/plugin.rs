@@ -18,9 +18,10 @@ use crate::types::{
     PluginExecutionStatusEvent, PluginFilesystemPermission, PluginManifest,
     PluginPackageInspection, PluginPackageSource, PluginPackageSourceKind,
     PluginPermissionApproval, PluginPermissionRequest, PluginProvider, PluginRuntimeLanguage,
-    PluginSummary, PluginToolPermission, PluginTriggerWorkflow, PluginWorkflowFailurePolicy,
-    PluginWorkflowRun, PluginWorkflowRunStatus, PluginWorkflowStepSnapshot,
-    PostDownloadPluginPayload,
+    PluginStoreCatalog, PluginStoreEntry, PluginStoreInstalledStatus, PluginStorePublisherKind,
+    PluginStoreVersion, PluginSummary, PluginToolPermission, PluginTriggerWorkflow,
+    PluginWorkflowFailurePolicy, PluginWorkflowRun, PluginWorkflowRunStatus,
+    PluginWorkflowStepSnapshot, PostDownloadPluginPayload, PreparedPluginStorePackage,
 };
 use crate::utils::CommandExt;
 
@@ -83,6 +84,13 @@ pub use state::{
     update_plugin_config_values_internal, update_plugin_state_internal,
     update_plugin_trigger_workflow_internal,
 };
+
+const PLUGIN_STORE_CATALOG_JSON: &str = include_str!("../../../plugin-store/catalog.json");
+const PLUGIN_STORE_CATALOG_URL: &str =
+    "https://raw.githubusercontent.com/vanloctech/youwee/main/plugin-store/catalog.json";
+const PLUGIN_STORE_CATALOG_TIMEOUT_SECS: u64 = 10;
+static PLUGIN_STORE_REMOTE_CATALOG_CACHE: OnceLock<std::sync::RwLock<Option<PluginStoreCatalog>>> =
+    OnceLock::new();
 use summary::{
     build_installation_from_registry, default_provider_for_language, load_plugin_readme_content,
     manifest_summary, resolve_effective_plugin_config_values,
@@ -858,6 +866,369 @@ pub async fn install_plugin_package_internal(
     trusted: bool,
 ) -> Result<PluginSummary, String> {
     install_plugin_internal(app, InstallPluginPackageInput { value: path }, trusted).await
+}
+
+fn compute_plugin_store_sha256(bytes: &[u8]) -> String {
+    use sha2::{Digest, Sha256};
+
+    let mut hasher = Sha256::new();
+    hasher.update(bytes);
+    hex::encode(hasher.finalize())
+}
+
+fn is_lower_sha256(value: &str) -> bool {
+    value.len() == 64
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+}
+
+fn github_repo_parts(url: &str) -> Result<(String, String), String> {
+    let parsed = reqwest::Url::parse(url).map_err(|_| "Invalid GitHub repository URL.")?;
+    let parts = parsed
+        .path_segments()
+        .map(|segments| segments.collect::<Vec<_>>())
+        .unwrap_or_default();
+    if parsed.scheme() != "https" || parsed.host_str() != Some("github.com") || parts.len() < 2 {
+        return Err("Repository must be a GitHub HTTPS URL.".to_string());
+    }
+    Ok((parts[0].to_string(), parts[1].to_string()))
+}
+
+fn validate_store_package_url(
+    plugin_id: &str,
+    repository: &str,
+    version: &PluginStoreVersion,
+) -> Result<(), String> {
+    let (owner, repo) = github_repo_parts(repository)?;
+    let parsed = reqwest::Url::parse(&version.package_url)
+        .map_err(|_| format!("{plugin_id}: invalid package URL."))?;
+    let parts = parsed
+        .path_segments()
+        .map(|segments| segments.collect::<Vec<_>>())
+        .unwrap_or_default();
+    let expected_prefix = [
+        owner.as_str(),
+        repo.as_str(),
+        "releases",
+        "download",
+        version.release_tag.as_str(),
+    ];
+
+    if parsed.scheme() != "https"
+        || parsed.host_str() != Some("github.com")
+        || parts.len() < 6
+        || expected_prefix
+            .iter()
+            .enumerate()
+            .any(|(index, expected)| parts.get(index).copied() != Some(*expected))
+    {
+        return Err(format!(
+            "{plugin_id}: package URL must be a pinned GitHub release asset."
+        ));
+    }
+    if parts.iter().any(|part| *part == "latest") {
+        return Err(format!("{plugin_id}: package URL must not use latest."));
+    }
+    if parts.last().copied() != Some(version.asset_name.as_str())
+        || !version.asset_name.ends_with(".ywp")
+    {
+        return Err(format!("{plugin_id}: package asset name mismatch."));
+    }
+    Ok(())
+}
+
+fn validate_plugin_store_catalog(catalog: &PluginStoreCatalog) -> Result<(), String> {
+    if catalog.schema_version != 1 {
+        return Err("Unsupported plugin store catalog schema version.".to_string());
+    }
+
+    let mut ids = std::collections::BTreeSet::new();
+    for entry in &catalog.plugins {
+        if !ids.insert(entry.plugin_id.as_str()) {
+            return Err(format!("Duplicate plugin store id: {}", entry.plugin_id));
+        }
+
+        let (owner, _) = github_repo_parts(&entry.repository)?;
+        if owner != entry.publisher.repository_owner {
+            return Err(format!(
+                "{}: publisher repository owner must match repository.",
+                entry.plugin_id
+            ));
+        }
+        if matches!(entry.publisher.kind, PluginStorePublisherKind::Official)
+            && entry.publisher.repository_owner != "vanloctech"
+        {
+            return Err(format!(
+                "{}: official plugins must use vanloctech repository owner.",
+                entry.plugin_id
+            ));
+        }
+
+        let mut versions = std::collections::BTreeSet::new();
+        for version in &entry.versions {
+            if !versions.insert(version.version.as_str()) {
+                return Err(format!(
+                    "{}: duplicate version {}.",
+                    entry.plugin_id, version.version
+                ));
+            }
+            if !is_lower_sha256(&version.sha256) {
+                return Err(format!("{}: invalid package SHA256.", entry.plugin_id));
+            }
+            if !is_lower_sha256(&version.signer_fingerprint) {
+                return Err(format!("{}: invalid signer fingerprint.", entry.plugin_id));
+            }
+            validate_store_package_url(&entry.plugin_id, &entry.repository, version)?;
+        }
+        if !versions.contains(entry.latest_version.as_str()) {
+            return Err(format!(
+                "{}: latestVersion must exist in versions.",
+                entry.plugin_id
+            ));
+        }
+    }
+
+    Ok(())
+}
+
+fn parse_plugin_store_catalog(source: &str) -> Result<PluginStoreCatalog, String> {
+    let catalog: PluginStoreCatalog = serde_json::from_str(source)
+        .map_err(|e| format!("Failed to parse plugin store catalog: {}", e))?;
+    validate_plugin_store_catalog(&catalog)?;
+    Ok(catalog)
+}
+
+fn load_plugin_store_catalog() -> Result<PluginStoreCatalog, String> {
+    parse_plugin_store_catalog(PLUGIN_STORE_CATALOG_JSON)
+}
+
+fn plugin_store_remote_catalog_cache() -> &'static std::sync::RwLock<Option<PluginStoreCatalog>> {
+    PLUGIN_STORE_REMOTE_CATALOG_CACHE.get_or_init(|| std::sync::RwLock::new(None))
+}
+
+fn cached_remote_plugin_store_catalog() -> Option<PluginStoreCatalog> {
+    plugin_store_remote_catalog_cache()
+        .read()
+        .ok()
+        .and_then(|catalog| catalog.clone())
+}
+
+fn set_cached_remote_plugin_store_catalog(catalog: PluginStoreCatalog) {
+    if let Ok(mut cached_catalog) = plugin_store_remote_catalog_cache().write() {
+        *cached_catalog = Some(catalog);
+    }
+}
+
+async fn fetch_plugin_store_catalog() -> Result<PluginStoreCatalog, String> {
+    let client = reqwest::Client::builder()
+        .user_agent(format!("Youwee/{}", env!("CARGO_PKG_VERSION")))
+        .timeout(std::time::Duration::from_secs(
+            PLUGIN_STORE_CATALOG_TIMEOUT_SECS,
+        ))
+        .build()
+        .map_err(|e| format!("Failed to create plugin store HTTP client: {}", e))?;
+    let response = client
+        .get(PLUGIN_STORE_CATALOG_URL)
+        .send()
+        .await
+        .map_err(|e| format!("Failed to fetch plugin store catalog: {}", e))?;
+    if !response.status().is_success() {
+        return Err(format!(
+            "Plugin store catalog request failed: HTTP {}",
+            response.status()
+        ));
+    }
+    let source = response
+        .text()
+        .await
+        .map_err(|e| format!("Failed to read plugin store catalog response: {}", e))?;
+    parse_plugin_store_catalog(&source)
+}
+
+async fn load_runtime_plugin_store_catalog(
+    force_refresh: bool,
+) -> Result<PluginStoreCatalog, String> {
+    if !force_refresh {
+        if let Some(catalog) = cached_remote_plugin_store_catalog() {
+            return Ok(catalog);
+        }
+    }
+
+    let remote_catalog_result = tokio::time::timeout(
+        std::time::Duration::from_secs(PLUGIN_STORE_CATALOG_TIMEOUT_SECS),
+        fetch_plugin_store_catalog(),
+    )
+    .await
+    .map_err(|_| "Plugin store catalog request timed out.".to_string())
+    .and_then(|result| result);
+
+    match remote_catalog_result {
+        Ok(catalog) => {
+            set_cached_remote_plugin_store_catalog(catalog.clone());
+            Ok(catalog)
+        }
+        Err(remote_error) => {
+            add_log_internal(
+                "warn",
+                "Plugin Store catalog fallback",
+                Some(&format!(
+                    "Using bundled plugin catalog because the remote catalog could not be loaded.\n{}",
+                    remote_error
+                )),
+                None,
+            )
+            .ok();
+            cached_remote_plugin_store_catalog().map_or_else(load_plugin_store_catalog, Ok)
+        }
+    }
+}
+
+fn load_cached_or_bundled_plugin_store_catalog() -> Result<PluginStoreCatalog, String> {
+    cached_remote_plugin_store_catalog().map_or_else(load_plugin_store_catalog, Ok)
+}
+
+fn merge_plugin_store_installed_status(
+    app: &AppHandle,
+    catalog: PluginStoreCatalog,
+) -> Result<Vec<PluginStoreEntry>, String> {
+    let registry = read_registry(app)?;
+    let root = ensure_plugins_root(app)?;
+    let mut entries = catalog.plugins;
+    for entry in &mut entries {
+        if registry.installations.contains_key(&entry.plugin_id) {
+            entry.installed_status = PluginStoreInstalledStatus::Installed;
+            let installed_manifest = find_existing_installation_path(&root, &entry.plugin_id)
+                .and_then(|path| load_installed_manifest_from_dir(&path).ok());
+            entry.installed_version = installed_manifest.map(|manifest| manifest.version);
+        } else {
+            entry.installed_status = PluginStoreInstalledStatus::NotInstalled;
+            entry.installed_version = None;
+        }
+    }
+    entries.sort_by(|left, right| {
+        left.name
+            .to_lowercase()
+            .cmp(&right.name.to_lowercase())
+            .then_with(|| left.plugin_id.cmp(&right.plugin_id))
+    });
+    Ok(entries)
+}
+
+pub async fn list_plugin_store_entries_internal(
+    app: AppHandle,
+    force_refresh: bool,
+) -> Result<Vec<PluginStoreEntry>, String> {
+    let catalog = load_runtime_plugin_store_catalog(force_refresh).await?;
+    tokio::task::spawn_blocking(move || merge_plugin_store_installed_status(&app, catalog))
+        .await
+        .map_err(|e| format!("Failed to join plugin store list task: {}", e))?
+}
+
+fn select_store_version<'a>(
+    entry: &'a PluginStoreEntry,
+    requested_version: Option<&str>,
+) -> Result<&'a PluginStoreVersion, String> {
+    let version = requested_version.unwrap_or(entry.latest_version.as_str());
+    entry
+        .versions
+        .iter()
+        .find(|candidate| candidate.version == version)
+        .ok_or_else(|| {
+            format!(
+                "Plugin store version not found: {}@{}",
+                entry.plugin_id, version
+            )
+        })
+}
+
+pub async fn prepare_plugin_store_package_internal(
+    app: &AppHandle,
+    plugin_id: String,
+    version: Option<String>,
+) -> Result<PreparedPluginStorePackage, String> {
+    let catalog = load_cached_or_bundled_plugin_store_catalog()?;
+    let entry = catalog
+        .plugins
+        .into_iter()
+        .find(|candidate| candidate.plugin_id == plugin_id)
+        .ok_or_else(|| format!("Plugin store entry not found: {}", plugin_id))?;
+    let selected_version = select_store_version(&entry, version.as_deref())?.clone();
+
+    let client = reqwest::Client::builder()
+        .user_agent(format!("Youwee/{}", env!("CARGO_PKG_VERSION")))
+        .timeout(std::time::Duration::from_secs(120))
+        .build()
+        .map_err(|e| format!("Failed to create HTTP client: {}", e))?;
+    let response = client
+        .get(&selected_version.package_url)
+        .send()
+        .await
+        .map_err(|e| format!("Failed to download plugin package: {}", e))?;
+    if !response.status().is_success() {
+        return Err(format!(
+            "Plugin package download failed: HTTP {}",
+            response.status()
+        ));
+    }
+    let bytes = response
+        .bytes()
+        .await
+        .map_err(|e| format!("Failed to read plugin package response: {}", e))?;
+    let actual_sha256 = compute_plugin_store_sha256(&bytes);
+    if actual_sha256 != selected_version.sha256 {
+        return Err("Security error: plugin package SHA256 mismatch.".to_string());
+    }
+
+    let store_cache_dir = app
+        .path()
+        .app_cache_dir()
+        .map_err(|e| format!("Failed to get app cache directory: {}", e))?
+        .join("plugin-store");
+    tokio::fs::create_dir_all(&store_cache_dir)
+        .await
+        .map_err(|e| format!("Failed to create plugin store cache: {}", e))?;
+    let package_path = store_cache_dir.join(format!(
+        "{}-{}-{}",
+        entry.slug, selected_version.version, selected_version.asset_name
+    ));
+    tokio::fs::write(&package_path, &bytes)
+        .await
+        .map_err(|e| format!("Failed to write plugin package: {}", e))?;
+
+    let inspection =
+        inspect_plugin_package_internal(app, package_path.to_string_lossy().to_string()).await?;
+    if inspection.manifest.plugin_id != entry.plugin_id {
+        return Err(format!(
+            "Security error: plugin manifest id {} does not match store id {}.",
+            inspection.manifest.plugin_id, entry.plugin_id
+        ));
+    }
+    if inspection.manifest.version != selected_version.version {
+        return Err(format!(
+            "Security error: plugin manifest version {} does not match store version {}.",
+            inspection.manifest.version, selected_version.version
+        ));
+    }
+    if inspection.signature_status.as_deref() != Some("signed") {
+        return Err("Security error: plugin store packages must be signed.".to_string());
+    }
+    if inspection.signer_fingerprint.as_deref()
+        != Some(selected_version.signer_fingerprint.as_str())
+    {
+        return Err("Security error: plugin signer fingerprint mismatch.".to_string());
+    }
+
+    let mut prepared_entry = entry;
+    prepared_entry.installed_status = PluginStoreInstalledStatus::NotInstalled;
+    prepared_entry.installed_version = None;
+
+    Ok(PreparedPluginStorePackage {
+        path: package_path.to_string_lossy().to_string(),
+        entry: prepared_entry,
+        version: selected_version,
+        inspection,
+    })
 }
 
 pub fn attach_plugin_workspace_internal(

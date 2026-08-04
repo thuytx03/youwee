@@ -10,7 +10,8 @@
     "network": "Сеть и авторизация",
     "system": "Система",
     "about": "О программе",
-    "plugins": "Плагины"
+    "plugins": "Плагины",
+    "pluginStore": "Plugin Store"
   },
   "search": {
     "placeholder": "Поиск настроек...",
@@ -55,6 +56,16 @@
     "numberPlaylistItemsDesc": "Добавлять номер из плейлиста к файлам раскрытой загрузки плейлиста",
     "numberQueueItems": "Нумеровать элементы очереди",
     "numberQueueItemsDesc": "Добавлять порядок в очереди к обычным загрузкам",
+    "filenameMetadata": "Метаданные в имени файла",
+    "filenameMetadataDesc": "Добавлять выбранные сведения о видео перед названием",
+    "filenameMetadataFields": {
+      "uploadDate": "Дата загрузки",
+      "viewCount": "Просмотры",
+      "uploader": "Автор",
+      "duration": "Длительность",
+      "resolution": "Разрешение",
+      "videoId": "ID видео"
+    },
     "splitEmbeddedChapters": "Разделять встроенные главы",
     "splitEmbeddedChaptersDesc": "Создавать отдельные файлы из глав, включенных в видео",
     "numberChapterFiles": "Нумеровать файлы глав",
@@ -872,5 +883,41 @@
   "plugins": {
     "title": "Plugins",
     "description": "Create and manage plugins to automate tasks in Youwee"
+  },
+  "pluginStore": {
+    "title": "Plugin Store",
+    "description": "Discover and install plugins for Youwee.",
+    "searchPlaceholder": "Search plugins, permissions, or categories...",
+    "allCategories": "All categories",
+    "loading": "Loading plugin store...",
+    "loadError": "Failed to load plugin store",
+    "noResults": "No plugins match your filters.",
+    "install": "Install",
+    "installing": "Installing...",
+    "installed": "Installed",
+    "openInPlugins": "Open in Plugins",
+    "repository": "Repository",
+    "permissions": "Permissions",
+    "noPermissions": "No extra permissions",
+    "installSuccessTitle": "Plugin installed",
+    "installSuccessMessage": "{{name}} was installed. Open Plugins to enable and configure it.",
+    "installErrorTitle": "Plugin install failed",
+    "cancel": "Cancel",
+    "confirmInstall": "Install plugin",
+    "thirdPartyTitle": "Install third-party plugin?",
+    "thirdPartyDescription": "This plugin is not published by Youwee. Review its repository and requested permissions before installing.",
+    "thirdPartySecurityNote": "Youwee verified the package checksum and signature. You still need to enable the plugin and grant permissions manually after installation.",
+    "publisherFilter": {
+      "all": "All",
+      "official": "Official",
+      "third-party": "Third-party"
+    },
+    "publisherKind": {
+      "official": "Official",
+      "third-party": "Third-party"
+    },
+    "publisher": "Publisher",
+    "thirdPartyNotice": "Third-party plugins are not reviewed by Youwee. Review and trust them before installing.",
+    "refresh": "Refresh"
   }
 }

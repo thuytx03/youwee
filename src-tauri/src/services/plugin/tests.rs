@@ -6,14 +6,55 @@ use super::security_policy::{validate_plugin_output_path, validate_plugin_write_
 use super::{
     build_plugin_completion_details, build_scaffold_ci_workflow, build_scaffold_package_json,
     build_scaffold_readme, build_scaffold_release_workflow, collect_compatibility_issues,
-    current_sdk_version, merge_chain_mutation, parse_plugin_result, sanitize_slug,
-    satisfies_version_range, should_mark_failed_download_recovered, validate_manifest,
-    write_sdk_package_files,
+    current_sdk_version, load_plugin_store_catalog, merge_chain_mutation, parse_plugin_result,
+    sanitize_slug, satisfies_version_range, should_mark_failed_download_recovered,
+    validate_manifest, validate_plugin_store_catalog, write_sdk_package_files,
 };
 use crate::types::{
     PluginChainMutation, PluginChainState, PluginExecutionResult, PluginPermissionRequest,
-    PluginProvider, PluginRuntimeLanguage, PluginRuntimeSpec,
+    PluginProvider, PluginRuntimeLanguage, PluginRuntimeSpec, PluginStorePublisherKind,
 };
+
+#[test]
+fn plugin_store_catalog_is_valid() {
+    let catalog = load_plugin_store_catalog().expect("plugin store catalog should be valid");
+
+    assert_eq!(catalog.schema_version, 1);
+    assert_eq!(catalog.plugins.len(), 3);
+    assert!(catalog
+        .plugins
+        .iter()
+        .all(|entry| matches!(entry.publisher.kind, PluginStorePublisherKind::Official)));
+}
+
+#[test]
+fn plugin_store_catalog_rejects_latest_release_urls() {
+    let mut catalog = load_plugin_store_catalog().expect("plugin store catalog should be valid");
+    catalog.plugins[0].versions[0].package_url =
+        "https://github.com/vanloctech/example/releases/latest/download/plugin.ywp".to_string();
+
+    let err = validate_plugin_store_catalog(&catalog).unwrap_err();
+    assert!(err.contains("pinned GitHub release asset") || err.contains("latest"));
+}
+
+#[test]
+fn plugin_store_catalog_rejects_non_vanloctech_official_plugins() {
+    let mut catalog = load_plugin_store_catalog().expect("plugin store catalog should be valid");
+    catalog.plugins[0].repository = "https://github.com/example/plugin".to_string();
+    catalog.plugins[0].publisher.repository_owner = "example".to_string();
+
+    let err = validate_plugin_store_catalog(&catalog).unwrap_err();
+    assert!(err.contains("official plugins must use vanloctech"));
+}
+
+#[test]
+fn plugin_store_catalog_rejects_invalid_security_metadata() {
+    let mut catalog = load_plugin_store_catalog().expect("plugin store catalog should be valid");
+    catalog.plugins[0].versions[0].sha256 = "not-a-sha".to_string();
+
+    let err = validate_plugin_store_catalog(&catalog).unwrap_err();
+    assert!(err.contains("invalid package SHA256"));
+}
 
 #[test]
 fn sanitize_slug_normalizes_values() {

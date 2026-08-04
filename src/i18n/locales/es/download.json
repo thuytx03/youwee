@@ -207,6 +207,8 @@
     },
     "summarize": "Resumir",
     "openFolder": "Mostrar en carpeta",
+    "copyUrl": "Copiar URL",
+    "copied": "Copiado",
     "changeOutputFolder": "Cambiar carpeta",
     "outputFolder": "Carpeta de descarga: {{path}}",
     "rename": "Renombrar",

@@ -1,4 +1,4 @@
-import { Trash2, Youtube } from 'lucide-react';
+import { MonitorPlay, Trash2 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { EmptyStateIllustration } from '@/components/shared/EmptyStateIllustration';
@@ -122,7 +122,7 @@ export function QueueList({
       {/* Queue Items or Empty State */}
       {items.length === 0 ? (
         <div className="flex-1 flex flex-col items-center justify-center py-12 px-4">
-          <EmptyStateIllustration className="mb-5" icon={Youtube} />
+          <EmptyStateIllustration className="mb-5" icon={MonitorPlay} />
           <h3 className="text-base font-medium mb-1">{t('queue.empty.title')}</h3>
           <p className="text-sm text-muted-foreground text-center max-w-[240px]">
             {t('queue.empty.description')}

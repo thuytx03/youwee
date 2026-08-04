@@ -237,6 +237,8 @@
       .media-toggle {
         display: inline-flex;
         width: 100%;
+        min-inline-size: 0;
+        margin: 0;
         border-radius: 999px;
         border: 1px solid rgba(255, 255, 255, 0.08);
         background: rgba(2, 6, 23, 0.56);
@@ -486,15 +488,15 @@
           ></button>
         </div>
 
-        <label id="mediaLabel" class="field-label">Media</label>
-        <div class="media-toggle" role="group" aria-label="Media">
+        <div id="mediaLabel" class="field-label">Media</div>
+        <fieldset class="media-toggle" aria-labelledby="mediaLabel">
           <button id="mediaVideoBtn" type="button" class="media-toggle-btn" data-media="video">
             Video
           </button>
           <button id="mediaAudioBtn" type="button" class="media-toggle-btn" data-media="audio">
             Audio
           </button>
-        </div>
+        </fieldset>
         <label id="qualityLabel" class="field-label" for="qualitySelect">Quality</label>
         <div class="select-wrap">
           <select id="qualitySelect" class="field-select"></select>

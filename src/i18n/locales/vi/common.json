@@ -31,7 +31,10 @@
     "ja": "Tiếng Nhật",
     "es": "Tiếng Tây Ban Nha",
     "label": "Ngôn ngữ",
-    "select": "Chọn ngôn ngữ"
+    "select": "Chọn ngôn ngữ",
+    "tr": "Türkçe",
+    "uz": "O‘zbekcha",
+    "ro": "Română"
   },
   "actions": {
     "cancel": "Hủy"

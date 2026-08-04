@@ -7,6 +7,7 @@ import {
   Package,
   Palette,
   Puzzle,
+  ShoppingBag,
   Sparkles,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -27,6 +28,7 @@ const SECTION_ICONS: Record<SettingsSectionId, React.ReactNode> = {
   extension: <Puzzle className="w-4 h-4" />,
   ai: <Sparkles className="w-4 h-4" />,
   network: <Globe className="w-4 h-4" />,
+  'plugin-store': <ShoppingBag className="w-4 h-4" />,
   about: <Info className="w-4 h-4" />,
 };
 
@@ -43,6 +45,7 @@ export function SettingsSidebar({ activeSection, onSectionChange }: SettingsSide
     { id: 'remote-download', labelKey: 'sections.remoteDownload' },
     { id: 'extension', labelKey: 'sections.extension' },
     { id: 'about', labelKey: 'sections.about' },
+    { id: 'plugin-store', labelKey: 'sections.pluginStore' },
   ];
 
   return (

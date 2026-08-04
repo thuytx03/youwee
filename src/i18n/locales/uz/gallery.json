@@ -1,0 +1,63 @@
+{
+  "title": "Gallery",
+  "page": {
+    "systemManagedOnly": "Faqat tizim boshqariladi"
+  },
+  "missing": {
+    "title": "gallery-dl talab qilinadi",
+    "checking": "gallery-dl tizimi tekshirilmoqda...",
+    "description": "Galereyalar, kolleksiyalar va ijodkorlar tasmalarini yuklab olish uchun gallery-dl-ni tizimingizga o‘rnating.",
+    "refresh": "Holatni yangilash",
+    "openDependencies": "Bogʻliqliklarni ochish",
+    "installGuide": "Oʻrnatish yo'riqnomasi"
+  },
+  "actions": {
+    "startDownload": "Yuklab olishni boshlash",
+    "stopDownload": "Yuklab olishni toʻxtatish",
+    "clearAll": "Hammasini tozalash"
+  },
+  "settings": {
+    "notSelected": "Jildni tanlang",
+    "selectFolder": "Chiqish jildini tanlang",
+    "systemManagedOnly": "Faqat tizim boshqariladi",
+    "advanced": "Murakkab",
+    "more": "Koʻproq",
+    "parallelDownloads": "Parallel yuklab olish",
+    "atATime": "{{count}} bir vaqtning o'zida",
+    "systemManagedHint": "Youwee gallery-dl ikkilik tizimidan faqat shu ekran uchun foydalanadi."
+  },
+  "queue": {
+    "title": "Navbat",
+    "pending": "{{count}} kutilmoqda",
+    "clearCompleted": "Tugallanganlarni tozalash ({{count}})",
+    "openFolder": "Jildni ochish",
+    "remove": "Elementni olib tashlash",
+    "status": {
+      "pending": "Kutilmoqda",
+      "downloading": "Yuklab olinmoqda",
+      "completed": "Tugallandi",
+      "failed": "Xato"
+    },
+    "empty": {
+      "title": "Boshlash uchun galereya URLʼsini tashlang",
+      "description": "Ushbu ekrandan gallery-dl ga Universal dan yaxshiroq mos keladigan tasvir galereyalari, rassomlar tasmasi, manga boblari va boshqa kolleksiya uslubidagi manbalar uchun foydalaning.",
+      "moreCount": "va boshqalar",
+      "viewFullList": "Qoʻllab-quvvatlanadigan saytlarni ko'rish"
+    }
+  },
+  "urlInput": {
+    "single": "Bitta",
+    "singleHint": "Bitta galereya URLʼsini joylashtiring",
+    "multiple": "Bir nechta",
+    "multipleHint": "Bir nechta galereya URL manzillarini qoʻshing (har bir satrda bittadan)",
+    "paste": "Joylashtirish",
+    "import": "Import",
+    "detectedMultiple": "{{count}} URL manzillari aniqlandi",
+    "placeholder": "Galereya, post yoki ijodkor URLʼsini joylashtiring",
+    "placeholderMultiple": "Har bir qatorga bitta URL. # bilan boshlangan qatorlar e'tiborga olinmaydi.",
+    "urlCount": "{{count}} URL",
+    "urlCount_plural": "{{count}} URL manzillari",
+    "clearInput": "Tozalash",
+    "addToQueue": "Qoʻshish"
+  }
+}

@@ -122,6 +122,8 @@
     "showLess": "Mostrar menos",
     "regenerateSummary": "Gerar resumo novamente",
     "openFolder": "Mostrar na pasta",
+    "copyUrl": "Copiar URL",
+    "copied": "Copiado",
     "changeOutputFolder": "Alterar pasta",
     "outputFolder": "Pasta de download: {{path}}",
     "rename": "Renomear",

@@ -56,6 +56,15 @@ import ptPages from './locales/pt/pages.json';
 import ptSettings from './locales/pt/settings.json';
 import ptSubtitles from './locales/pt/subtitles.json';
 import ptUniversal from './locales/pt/universal.json';
+import roChannels from './locales/ro/channels.json';
+import roCommon from './locales/ro/common.json';
+import roDownload from './locales/ro/download.json';
+import roGallery from './locales/ro/gallery.json';
+import roMetadata from './locales/ro/metadata.json';
+import roPages from './locales/ro/pages.json';
+import roSettings from './locales/ro/settings.json';
+import roSubtitles from './locales/ro/subtitles.json';
+import roUniversal from './locales/ro/universal.json';
 
 import ruChannels from './locales/ru/channels.json';
 import ruCommon from './locales/ru/common.json';
@@ -75,6 +84,24 @@ import thPages from './locales/th/pages.json';
 import thSettings from './locales/th/settings.json';
 import thSubtitles from './locales/th/subtitles.json';
 import thUniversal from './locales/th/universal.json';
+import trChannels from './locales/tr/channels.json';
+import trCommon from './locales/tr/common.json';
+import trDownload from './locales/tr/download.json';
+import trGallery from './locales/tr/gallery.json';
+import trMetadata from './locales/tr/metadata.json';
+import trPages from './locales/tr/pages.json';
+import trSettings from './locales/tr/settings.json';
+import trSubtitles from './locales/tr/subtitles.json';
+import trUniversal from './locales/tr/universal.json';
+import uzChannels from './locales/uz/channels.json';
+import uzCommon from './locales/uz/common.json';
+import uzDownload from './locales/uz/download.json';
+import uzGallery from './locales/uz/gallery.json';
+import uzMetadata from './locales/uz/metadata.json';
+import uzPages from './locales/uz/pages.json';
+import uzSettings from './locales/uz/settings.json';
+import uzSubtitles from './locales/uz/subtitles.json';
+import uzUniversal from './locales/uz/universal.json';
 import viChannels from './locales/vi/channels.json';
 import viCommon from './locales/vi/common.json';
 import viDownload from './locales/vi/download.json';
@@ -183,6 +210,17 @@ const resources = {
     settings: ptSettings,
     subtitles: ptSubtitles,
   },
+  ro: {
+    common: roCommon,
+    channels: roChannels,
+    download: roDownload,
+    gallery: roGallery,
+    metadata: roMetadata,
+    universal: roUniversal,
+    pages: roPages,
+    settings: roSettings,
+    subtitles: roSubtitles,
+  },
   ru: {
     common: ruCommon,
     channels: ruChannels,
@@ -204,6 +242,28 @@ const resources = {
     pages: thPages,
     settings: thSettings,
     subtitles: thSubtitles,
+  },
+  tr: {
+    common: trCommon,
+    channels: trChannels,
+    download: trDownload,
+    gallery: trGallery,
+    metadata: trMetadata,
+    universal: trUniversal,
+    pages: trPages,
+    settings: trSettings,
+    subtitles: trSubtitles,
+  },
+  uz: {
+    common: uzCommon,
+    channels: uzChannels,
+    download: uzDownload,
+    gallery: uzGallery,
+    metadata: uzMetadata,
+    universal: uzUniversal,
+    pages: uzPages,
+    settings: uzSettings,
+    subtitles: uzSubtitles,
   },
 };
 

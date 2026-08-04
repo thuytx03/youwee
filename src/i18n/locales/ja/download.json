@@ -207,6 +207,8 @@
     },
     "summarize": "AI 要約",
     "openFolder": "フォルダに表示",
+    "copyUrl": "URLをコピー",
+    "copied": "コピー済み",
     "changeOutputFolder": "フォルダを変更",
     "outputFolder": "保存先フォルダ: {{path}}",
     "rename": "名前を変更",
