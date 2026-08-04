@@ -10,6 +10,13 @@ import {
   type TextAnimation,
 } from '@elah/editor'
 import { useTranslation } from 'react-i18next'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { cn } from '@/lib/utils'
 import {
   inputCls,
@@ -232,10 +239,9 @@ export function ShapeClipProperties() {
           <>
             <div className="grid grid-cols-2 gap-3">
               <Field label={t('editor.ui.fadeIn')}>
-                <select
+                <Select
                   value={effective.shapeAnimation?.in ?? 'none'}
-                  onChange={(e) => {
-                    const val = e.target.value
+                  onValueChange={(val) => {
                     commit({
                       shapeAnimation: {
                         durationFrames: effective.shapeAnimation?.durationFrames ?? 15,
@@ -244,17 +250,20 @@ export function ShapeClipProperties() {
                       },
                     })
                   }}
-                  className={cn(inputCls, 'cursor-pointer')}
                 >
-                  <option value="none">{t('editor.ui.none')}</option>
-                  <option value="fade">{t('editor.ui.fade')}</option>
-                </select>
+                  <SelectTrigger className={inputCls}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">{t('editor.ui.none')}</SelectItem>
+                    <SelectItem value="fade">{t('editor.ui.fade')}</SelectItem>
+                  </SelectContent>
+                </Select>
               </Field>
               <Field label={t('editor.ui.fadeOut')}>
-                <select
+                <Select
                   value={effective.shapeAnimation?.out ?? 'none'}
-                  onChange={(e) => {
-                    const val = e.target.value
+                  onValueChange={(val) => {
                     commit({
                       shapeAnimation: {
                         durationFrames: effective.shapeAnimation?.durationFrames ?? 15,
@@ -263,11 +272,15 @@ export function ShapeClipProperties() {
                       },
                     })
                   }}
-                  className={cn(inputCls, 'cursor-pointer')}
                 >
-                  <option value="none">{t('editor.ui.none')}</option>
-                  <option value="fade">{t('editor.ui.fade')}</option>
-                </select>
+                  <SelectTrigger className={inputCls}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">{t('editor.ui.none')}</SelectItem>
+                    <SelectItem value="fade">{t('editor.ui.fade')}</SelectItem>
+                  </SelectContent>
+                </Select>
               </Field>
             </div>
             {(effective.shapeAnimation?.in || effective.shapeAnimation?.out) && (

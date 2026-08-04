@@ -2,7 +2,14 @@
 
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useTimelineEngine, type Clip } from '@elah/editor'
+import { transformFromContainRect } from '@elah/core'
+import {
+  useMediaLibraryStore,
+  useTimelineEngine,
+  useTracksStore,
+  type Clip,
+} from '@elah/editor'
+import { Maximize2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import {
   PANEL,
@@ -42,6 +49,18 @@ export function VideoClipProperties({ clip }: { clip: Clip }) {
     setLocal((p) => ({ ...p, transform: { ...mergeTransform(effective), ...patch } }))
   const commitTf = () => commit({ transform: mergeTransform(effective) })
 
+  // Scale + center the clip so it fits entirely inside the stage (letterboxed,
+  // never cropped), using the source video's real pixel dimensions.
+  const stage = useTracksStore((s) => s.stage)
+  const handleFitToFrame = () => {
+    const asset = clip.assetId ? useMediaLibraryStore.getState().getAsset(clip.assetId) : undefined
+    const contentWidth = asset?.width
+    const contentHeight = asset?.height
+    if (!contentWidth || !contentHeight) return
+    const transform = transformFromContainRect(contentWidth, contentHeight, stage.width, stage.height)
+    commit({ transform: { ...transform, rotation: tf.rotation } })
+  }
+
   return (
     <div className={cn(PANEL, 'overflow-hidden')}>
       <PanelHeader
@@ -70,6 +89,13 @@ export function VideoClipProperties({ clip }: { clip: Clip }) {
       <div className="flex-1 overflow-auto p-4">
         {tab === 'transform' && (
           <>
+            <button
+              type="button"
+              onClick={handleFitToFrame}
+              className="mb-3 w-full inline-flex items-center justify-center gap-2 rounded-md px-3 py-2 text-xs border border-ed-border text-ed-text hover:bg-ed-elevated transition-colors"
+            >
+              <Maximize2 className="w-3.5 h-3.5" /> {t('editor.ui.fitToFrame')}
+            </button>
             <SliderRow
               label={t('editor.ui.scale')}
               value={tf.scale}

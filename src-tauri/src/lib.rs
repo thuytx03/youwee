@@ -449,6 +449,8 @@ pub fn run() {
             commands::editor_check_preview_exists,
             commands::editor_cleanup_previews,
             commands::editor_save_export,
+            commands::editor_tts_synthesize,
+            commands::editor_transcribe_bytes,
             // Whisper commands
             commands::transcribe_video_with_whisper,
             commands::transcribe_url_with_whisper,

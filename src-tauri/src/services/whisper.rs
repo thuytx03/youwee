@@ -327,9 +327,17 @@ pub async fn transcribe_audio(
     #[cfg(debug_assertions)]
     {
         println!("[WHISPER] Response status: {}", status);
+        // Truncate on a UTF-8 char boundary — a byte slice can split a multi-byte
+        // char (e.g. Chinese) and panic.
+        let preview_len = response_text
+            .char_indices()
+            .take(500)
+            .last()
+            .map(|(i, c)| i + c.len_utf8())
+            .unwrap_or(0);
         println!(
             "[WHISPER] Response (first 500 chars): {}",
-            &response_text[..response_text.len().min(500)]
+            &response_text[..preview_len]
         );
     }
 

@@ -35,6 +35,14 @@ flatpak/build-dir/
 flatpak/repo/
 flatpak/*.flatpak
 
+# Local agent/tooling state
+.claude/
+.codegraph/
+
+# Vendored Elah ships its prebuilt editor styles, which vite.config.ts resolves
+# directly, so keep it despite the blanket `dist` rule above.
+!src/vendor/elah/editor/dist/
+
 # Python (old version)
 *.py
 __pycache__/

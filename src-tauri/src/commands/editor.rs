@@ -24,11 +24,14 @@ mod jobs;
 mod metadata;
 #[path = "editor/preview.rs"]
 mod preview;
+#[path = "editor/tts.rs"]
+mod tts;
 
 pub use attachments::*;
 pub use jobs::*;
 pub use metadata::*;
 pub use preview::*;
+pub use tts::*;
 
 static ACTIVE_JOBS: LazyLock<Mutex<HashMap<String, tokio::sync::oneshot::Sender<()>>>> =
     LazyLock::new(|| Mutex::new(HashMap::new()));

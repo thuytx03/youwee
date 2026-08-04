@@ -15,6 +15,13 @@ import {
   type TextAnimation,
 } from '@elah/editor'
 import { useTranslation } from 'react-i18next'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { cn } from '@/lib/utils'
 import {
   inputCls,
@@ -158,29 +165,37 @@ export function TextClipProperties() {
             </Field>
 
             <Field label={t('editor.ui.font')}>
-              <select
+              <Select
                 value={effective.fontFamily ?? 'sans-serif'}
-                onChange={(e) => commit({ fontFamily: e.target.value })}
-                className={cn(inputCls, 'cursor-pointer')}
+                onValueChange={(v) => commit({ fontFamily: v })}
               >
-                {FONTS.map((f) => (
-                  <option key={f} value={f} style={{ fontFamily: f }}>
-                    {f === 'sans-serif' ? 'Sans Serif' : f}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger className={inputCls}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {FONTS.map((f) => (
+                    <SelectItem key={f} value={f} style={{ fontFamily: f }}>
+                      {f === 'sans-serif' ? 'Sans Serif' : f}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </Field>
 
             <div className="grid grid-cols-2 gap-3">
               <Field label={t('editor.ui.weight')}>
-                <select
+                <Select
                   value={effective.fontWeight ?? 'normal'}
-                  onChange={(e) => commit({ fontWeight: e.target.value as 'normal' | 'bold' })}
-                  className={cn(inputCls, 'cursor-pointer')}
+                  onValueChange={(v) => commit({ fontWeight: v as 'normal' | 'bold' })}
                 >
-                  <option value="normal">{t('editor.ui.regular')}</option>
-                  <option value="bold">{t('editor.ui.semibold')}</option>
-                </select>
+                  <SelectTrigger className={inputCls}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="normal">{t('editor.ui.regular')}</SelectItem>
+                    <SelectItem value="bold">{t('editor.ui.semibold')}</SelectItem>
+                  </SelectContent>
+                </Select>
               </Field>
               <Field label={t('editor.ui.size')}>
                 <NumberField
@@ -291,10 +306,9 @@ export function TextClipProperties() {
           <>
             <div className="grid grid-cols-2 gap-3">
               <Field label={t('editor.ui.fadeIn')}>
-                <select
+                <Select
                   value={effective.textAnimation?.in ?? 'none'}
-                  onChange={(e) => {
-                    const val = e.target.value
+                  onValueChange={(val) => {
                     commit({
                       textAnimation: {
                         durationFrames: effective.textAnimation?.durationFrames ?? 15,
@@ -303,17 +317,20 @@ export function TextClipProperties() {
                       },
                     })
                   }}
-                  className={cn(inputCls, 'cursor-pointer')}
                 >
-                  <option value="none">{t('editor.ui.none')}</option>
-                  <option value="fade">{t('editor.ui.fade')}</option>
-                </select>
+                  <SelectTrigger className={inputCls}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">{t('editor.ui.none')}</SelectItem>
+                    <SelectItem value="fade">{t('editor.ui.fade')}</SelectItem>
+                  </SelectContent>
+                </Select>
               </Field>
               <Field label={t('editor.ui.fadeOut')}>
-                <select
+                <Select
                   value={effective.textAnimation?.out ?? 'none'}
-                  onChange={(e) => {
-                    const val = e.target.value
+                  onValueChange={(val) => {
                     commit({
                       textAnimation: {
                         durationFrames: effective.textAnimation?.durationFrames ?? 15,
@@ -322,11 +339,15 @@ export function TextClipProperties() {
                       },
                     })
                   }}
-                  className={cn(inputCls, 'cursor-pointer')}
                 >
-                  <option value="none">{t('editor.ui.none')}</option>
-                  <option value="fade">{t('editor.ui.fade')}</option>
-                </select>
+                  <SelectTrigger className={inputCls}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">{t('editor.ui.none')}</SelectItem>
+                    <SelectItem value="fade">{t('editor.ui.fade')}</SelectItem>
+                  </SelectContent>
+                </Select>
               </Field>
             </div>
             {(effective.textAnimation?.in || effective.textAnimation?.out) && (

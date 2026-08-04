@@ -1,33 +1,15 @@
 import path from 'node:path';
 import react from '@vitejs/plugin-react';
-import { defineConfig, type Plugin } from 'vite';
-
-// Phase B (Elah): @elah/core's exportVideo.js spawns its worker with
-//   new Worker(new URL('./ExportWorker.ts', import.meta.url), ...)
-// but the package actually ships ExportWorker.js (the .ts source is not
-// published). Rewrite the specifier so Vite can resolve + bundle the worker.
-function fixElahExportWorker(): Plugin {
-  return {
-    name: 'fix-elah-export-worker',
-    enforce: 'pre',
-    transform(code, id) {
-      if (id.includes('@elah/core') && code.includes('./ExportWorker.ts')) {
-        return {
-          code: code.replace(/\.\/ExportWorker\.ts/g, './ExportWorker.js'),
-          map: null,
-        };
-      }
-      return null;
-    },
-  };
-}
+import { defineConfig } from 'vite';
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [fixElahExportWorker(), react()],
-  // Let Vite handle @elah/core at source level so the
-  // new Worker(new URL(...)) idiom is detected and bundled correctly
-  // (pre-bundling would flatten import.meta.url and break the worker URL).
+  plugins: [react()],
+  // Elah is vendored as TS source under src/vendor/elah (see its README) so
+  // we can fix a WebKit/Tauri-specific rendering bug. Vite reads the source
+  // directly — no pre-bundling needed, and the `new Worker(new URL('./ExportWorker.ts', ...))`
+  // idiom in core/src/export/exportVideo.ts is detected and bundled correctly
+  // since the .ts file is real project source, not an npm package.
   optimizeDeps: {
     exclude: ['@elah/core', '@elah/editor', '@elah/timeline'],
   },
@@ -48,9 +30,22 @@ export default defineConfig({
     },
   },
   resolve: {
-    alias: {
-      '@': path.resolve(__dirname, './src'),
-    },
+    alias: [
+      // Elah, vendored under src/vendor/elah (see its README) — CSS sub-paths
+      // must be listed before the bare package aliases so they match first.
+      {
+        find: '@elah/editor/styles/tokens.css',
+        replacement: path.resolve(__dirname, './src/vendor/elah/editor/src/styles/tokens.css'),
+      },
+      {
+        find: '@elah/editor/styles.css',
+        replacement: path.resolve(__dirname, './src/vendor/elah/editor/dist/styles.css'),
+      },
+      { find: '@elah/core', replacement: path.resolve(__dirname, './src/vendor/elah/core/src/index.ts') },
+      { find: '@elah/editor', replacement: path.resolve(__dirname, './src/vendor/elah/editor/src/index.ts') },
+      { find: '@elah/timeline', replacement: path.resolve(__dirname, './src/vendor/elah/timeline/src/index.ts') },
+      { find: '@', replacement: path.resolve(__dirname, './src') },
+    ],
   },
   build: {
     rollupOptions: {

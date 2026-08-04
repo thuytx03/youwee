@@ -208,7 +208,7 @@ export const TimelineControls = memo(function TimelineControls({
           onClick={() => timelineRef.current?.fitToWindow()}
           title="Zoom to fit timeline"
         >
-          <Maximize2 size={13} /> {!compact && t('editor.ui.fit')}
+          <Maximize2 size={13} /> {!compact && t('editor.ui.fitTimeline')}
         </button>
       </div>
     </div>

@@ -18,11 +18,14 @@ import {
   useTracksStore,
   usePlaybackStore,
 } from '@elah/editor';
-import { Maximize2, Pause, Play, Square } from 'lucide-react';
+import { Pause, Play, Square } from 'lucide-react';
+import { Captions, Clapperboard } from 'lucide-react';
 import { memo, useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import { EditorToolbar } from './EditorToolbar';
 import { ClipProperties } from './properties/ClipProperties';
+import { SubtitleDubPanel } from './SubtitleDubPanel';
 import { TimelineControls } from './TimelineControls';
 import { useElahDialogI18n } from './useElahDialogI18n';
 
@@ -79,7 +82,7 @@ const AspectControl = memo(function AspectControl() {
 });
 
 // ── Transport bar (play/pause/stop + timecode) under the preview.
-const TransportBar = memo(function TransportBar({ timelineRef }: { timelineRef: React.RefObject<TimelineRef | null> }) {
+const TransportBar = memo(function TransportBar() {
   const isPlaying = usePlaybackStore((s) => s.isPlaying);
   const togglePlayPause = usePlaybackStore((s) => s.togglePlayPause);
   const totalFrames = useTracksStore((s) => s.totalFrames);
@@ -97,7 +100,6 @@ const TransportBar = memo(function TransportBar({ timelineRef }: { timelineRef: 
 
   const handleStop = () => {
     usePlaybackStore.getState().pause();
-    usePlaybackStore.getState().setCurrentFrame(0);
   };
   const ghostIcon =
     'inline-flex items-center justify-center w-7 h-7 rounded text-ed-text-muted hover:text-ed-text hover:bg-ed-elevated transition-colors cursor-pointer';
@@ -118,19 +120,17 @@ const TransportBar = memo(function TransportBar({ timelineRef }: { timelineRef: 
           <Square size={13} fill="currentColor" />
         </button>
       </div>
-      <div className="flex items-center gap-1.5 justify-end">
-        <button type="button" title="Vừa khung" onClick={() => timelineRef.current?.fitToWindow()} className={ghostIcon}>
-          <Maximize2 size={14} />
-        </button>
-      </div>
+      <div />
     </div>
   );
 });
 
 export function VideoEditorStudio() {
+  const { t } = useTranslation('pages');
   const timelineRef = useRef<TimelineRef>(null);
   const [engine, setEngine] = useState<TimelineRef['engine'] | null>(null);
   const [playback, setPlayback] = useState<TimelineRef['playback'] | null>(null);
+  const [leftTab, setLeftTab] = useState<'media' | 'subtitle'>('media');
 
   useElahDialogI18n();
 
@@ -141,6 +141,7 @@ export function VideoEditorStudio() {
   }, []);
 
   const captureRef = (node: TimelineRef | null) => {
+    timelineRef.current = node;
     if (node && node.engine !== engine) {
       setEngine(node.engine);
       setPlayback(node.playback);
@@ -152,20 +153,51 @@ export function VideoEditorStudio() {
       <EditorProvider fps={FPS} defaultTrackHeight={36} initialTracks={INITIAL_TRACKS} stage={{ width: 1920, height: 1080 }}>
         <EditorToolbar engine={engine} playback={playback} />
         <div className="flex flex-1 min-h-0">
-          {/* SourcePanel already provides its own Media / Elements tabs, so it
-              replaces the separate icon rail + ElementsPanel (which duplicated it). */}
+          {/* Left panel: switch between Elah's media/elements SourcePanel and the
+              Subtitle + Voiceover panel. */}
           <div
-            style={{ width: 260, flexShrink: 0, minHeight: 0, overflow: 'hidden' }}
+            style={{ width: 280, flexShrink: 0, minHeight: 0, overflow: 'hidden' }}
             className="border-r border-ed-border bg-ed-panel flex flex-col"
           >
-            <SourcePanel defaultLane="media" style={{ flex: 1, minHeight: 0 }} />
+            <div className="flex border-b border-ed-border shrink-0">
+              <button
+                type="button"
+                onClick={() => setLeftTab('media')}
+                className={cn(
+                  'flex-1 inline-flex items-center justify-center gap-1.5 py-2 text-xs transition-colors',
+                  leftTab === 'media' ? 'text-ed-text' : 'text-ed-text-muted hover:text-ed-text',
+                )}
+                style={leftTab === 'media' ? { boxShadow: 'inset 0 -2px 0 var(--elah-accent)' } : undefined}
+              >
+                <Clapperboard className="w-4 h-4" /> {t('editor.subtitleDub.tabMedia')}
+              </button>
+              <button
+                type="button"
+                onClick={() => setLeftTab('subtitle')}
+                className={cn(
+                  'flex-1 inline-flex items-center justify-center gap-1.5 py-2 text-xs transition-colors',
+                  leftTab === 'subtitle' ? 'text-ed-text' : 'text-ed-text-muted hover:text-ed-text',
+                )}
+                style={leftTab === 'subtitle' ? { boxShadow: 'inset 0 -2px 0 var(--elah-accent)' } : undefined}
+              >
+                <Captions className="w-4 h-4" /> {t('editor.subtitleDub.tabSubtitle')}
+              </button>
+            </div>
+            <div className={cn('flex-1 min-h-0', leftTab === 'media' ? 'flex flex-col' : 'hidden')}>
+              <SourcePanel defaultLane="media" style={{ flex: 1, minHeight: 0 }} />
+            </div>
+            {/* Keep mounted (hidden via CSS) when switching tabs — unmounting
+                would wipe the panel's subtitle list, tracked clip ids, etc. */}
+            <div className={cn('flex-1 min-h-0', leftTab === 'subtitle' ? 'flex flex-col' : 'hidden')}>
+              <SubtitleDubPanel engine={engine} />
+            </div>
           </div>
           <div className="flex-1 min-w-0 min-h-0 flex flex-col bg-black">
             <AspectControl />
             <div className="flex-1 min-h-0 relative bg-black py-6">
               <Preview demuxerFactory={demuxerFactory} style={{ width: '100%', height: '100%' }} />
             </div>
-            <TransportBar timelineRef={timelineRef} />
+            <TransportBar />
           </div>
           <ClipProperties />
         </div>

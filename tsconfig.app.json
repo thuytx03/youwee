@@ -16,10 +16,14 @@
     "noEmit": true,
     "jsx": "react-jsx",
 
-    /* Path aliases */
+    /* Path aliases — @elah/* mirrors vite.config.ts's resolve.alias so tsc/IDE
+       resolve the same vendored source as the bundler (see src/vendor/elah). */
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@elah/core": ["./src/vendor/elah/core/src/index.ts"],
+      "@elah/editor": ["./src/vendor/elah/editor/src/index.ts"],
+      "@elah/timeline": ["./src/vendor/elah/timeline/src/index.ts"]
     },
 
     /* Linting */
@@ -30,5 +34,6 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true
   },
-  "include": ["src"]
+  "include": ["src"],
+  "exclude": ["src/vendor/elah/**"]
 }

@@ -167,6 +167,54 @@ export async function saveEditorExport(input: {
   });
 }
 
+// Generate subtitles (SRT with timestamps) from a video already loaded in the
+// editor. Elah media assets are blob URLs (no file path), so we send the raw
+// video bytes to the backend, which extracts audio and runs Whisper.
+export async function transcribeVideoBytes(input: {
+  bytes: Uint8Array;
+  filename: string;
+  apiKey: string;
+  language?: string;
+  whisperEndpointUrl?: string;
+  whisperModel?: string;
+}): Promise<string> {
+  return invoke<string>('editor_transcribe_bytes', {
+    bytes: Array.from(input.bytes),
+    filename: input.filename,
+    apiKey: input.apiKey,
+    language: input.language ?? null,
+    whisperEndpointUrl: input.whisperEndpointUrl ?? null,
+    whisperModel: input.whisperModel ?? 'whisper-1',
+  });
+}
+
+export interface TtsResult {
+  path: string;
+  duration_ms: number;
+  speed: number;
+}
+
+// Synthesize one subtitle line to a WAV clip (fitted to windowMs when given).
+export async function ttsSynthesize(input: {
+  provider: string;
+  voice: string;
+  text: string;
+  apiKey: string;
+  model?: string;
+  windowMs?: number;
+  index?: number;
+}): Promise<TtsResult> {
+  return invoke<TtsResult>('editor_tts_synthesize', {
+    provider: input.provider,
+    voice: input.voice,
+    text: input.text,
+    apiKey: input.apiKey,
+    model: input.model ?? null,
+    windowMs: input.windowMs ?? null,
+    index: input.index ?? null,
+  });
+}
+
 export async function deleteProcessingJob(id: string): Promise<void> {
   await invoke('editor_delete_job', { id });
 }
