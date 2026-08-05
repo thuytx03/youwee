@@ -14,11 +14,26 @@ import type { DragElementPayload } from './elementDrag'
 /** Default on-timeline length for a freshly inserted synthetic element, in seconds. */
 const DEFAULT_TEXT_DURATION_SEC = 3
 
+/**
+ * Lanes whose contents a host regenerates wholesale (subtitles, voiceover) and
+ * which therefore must not receive hand-added clips — anything placed there
+ * would be wiped on the next generate. Matched by name because the track model
+ * has no "managed" flag.
+ */
+const AUTO_LANE_NAME_PATTERN = /^(subtitles|voiceover)\b/i
+
 type MediaClipType = Extract<ClipType, 'video' | 'audio' | 'image'>
 
 export interface InsertAssetOptions {
   desiredStartFrame?: number
   targetTrackId?: string
+  /**
+   * Mark a track as reserved so automatic lane selection skips it. Use for lanes
+   * the host manages itself (a dedicated subtitle track, for example) which
+   * should not receive hand-added clips even when they are free at that moment.
+   * Ignored when `targetTrackId` names a track explicitly.
+   */
+  reserveTrack?: (track: Track) => boolean
 }
 
 export type InsertAssetFailureReason =
@@ -107,6 +122,38 @@ export function resolveDropPosition(
     return { startFrame: lastOverlapEnd, durationFrames: Math.min(durationFrames, available) }
   }
   return { startFrame: lastOverlapEnd, durationFrames }
+}
+
+/**
+ * Adjust a cursor-derived drop frame before overlap resolution runs.
+ *
+ * Pointer drops are pixel-accurate, which is wrong at the two places users
+ * actually aim for. At typical zoom a whole second is only a pixel or two wide,
+ * so the snap window to the origin is impossible to hit by hand:
+ *
+ * - Empty track -> frame 0. Dropping onto an empty lane means "start here";
+ *   honouring the cursor strands the very first clip behind dead air.
+ * - Past the last clip -> abut that clip, so appending never leaves a gap.
+ * - Anywhere else (a real gap, or over an existing clip) -> unchanged, leaving
+ *   `resolveDropPosition` to push or trim exactly as before.
+ *
+ * Only pointer drops call this. Playhead-based insertion keeps its own contract
+ * of landing precisely on `currentFrame`, empty track or not.
+ */
+export function resolveDropFrame(
+  existingClips: { startFrame: number; durationFrames: number }[],
+  desiredStart: number,
+  durationFrames: number,
+): number {
+  if (existingClips.length === 0) return 0
+
+  const overlapping = existingClips.some((c) =>
+    clipsOverlap(c, { startFrame: desiredStart, durationFrames }),
+  )
+  if (overlapping) return desiredStart
+
+  const lastEnd = Math.max(...existingClips.map((c) => c.startFrame + c.durationFrames))
+  return desiredStart > lastEnd ? lastEnd : desiredStart
 }
 
 /** Map MediaAsset kind to ClipType (identical for video/audio/image). */
@@ -216,6 +263,83 @@ function resolveOn(
   durationFrames: number,
 ) {
   return resolveDropPosition(clipsOn(engine, trackId), desired, durationFrames)
+}
+
+/** Whether a clip of this length would sit free at `desired` on the track. */
+function isFreeAt(
+  engine: TimelineEngine,
+  trackId: string,
+  desired: number,
+  durationFrames: number,
+): boolean {
+  return !clipsOn(engine, trackId).some((c) =>
+    clipsOverlap(c, { startFrame: desired, durationFrames }),
+  )
+}
+
+/**
+ * Pick the first track of `kind` that is actually free at `desired`, so tapping
+ * several elements without moving the playhead stacks them on parallel lanes
+ * instead of queueing them one after another on the first lane.
+ *
+ * `skip` excludes lanes the caller owns for another purpose — a host that keeps
+ * a dedicated subtitle lane, say, does not want a hand-added text element
+ * landing in it just because that lane happened to be free.
+ *
+ * Returns undefined when every eligible lane is busy there.
+ */
+function findFreeTrack(
+  engine: TimelineEngine,
+  kind: TrackKind,
+  desired: number,
+  durationFrames: number,
+  skip?: (track: Track) => boolean,
+): string | undefined {
+  for (const track of getProjectTracks(engine)) {
+    if (track.kind !== kind || track.locked) continue
+    if (skip?.(track)) continue
+    if (isFreeAt(engine, track.id, desired, durationFrames)) return track.id
+  }
+  return undefined
+}
+
+/**
+ * Next free lane of `kind` at `desired`, creating one when they are all busy.
+ *
+ * Layering is the point of an overlay track: adding a caption on top of a title
+ * on top of a shape at the same moment should just work, rather than being
+ * capped by however many lanes the host happened to seed. Returns undefined only
+ * if a new lane could not be created.
+ */
+function acquireFreeTrack(
+  engine: TimelineEngine,
+  kind: TrackKind,
+  desired: number,
+  durationFrames: number,
+  skip?: (track: Track) => boolean,
+): { trackId: string; created: boolean } | undefined {
+  // Auto-generated lanes are reserved by default: a host that names a track
+  // "Subtitles (original)" is managing its contents itself, and dropping a
+  // hand-added title into it would be replaced on the next subtitle run.
+  const reserved = skip ?? ((t: Track) => AUTO_LANE_NAME_PATTERN.test(t.name))
+  const free = findFreeTrack(engine, kind, desired, durationFrames, reserved)
+  if (free) return { trackId: free, created: false }
+
+  // Number the new lane against lanes sharing its prefix, not every track of
+  // this kind — otherwise a host-managed "Subtitles" lane inflates the count and
+  // the sequence reads "Elements, Elements 2, Elements 4".
+  const base = kind === 'elements' ? 'Elements' : 'Audio'
+  const prefixed = getProjectTracks(engine).filter(
+    (t) => t.kind === kind && t.name.startsWith(base),
+  )
+  try {
+    return {
+      trackId: engine.addTrack(kind, { name: `${base} ${prefixed.length + 1}` }).id,
+      created: true,
+    }
+  } catch {
+    return undefined
+  }
 }
 
 /** Add one media clip. MediaKind is never text, so `src` is always valid. */
@@ -336,20 +460,29 @@ export async function insertMediaAsset(
 
   if (asset.kind !== 'video' || !asset.hasAudio) {
     const run = (): InsertAssetResult => {
-      const r = resolveOn(engine, target.trackId, desiredStart, fullDuration)
+      // Audio layers, so tap insertion picks a lane free at this moment (adding
+      // one if needed) instead of queueing the second sound after the first.
+      // Video is a single lane by model, and an explicit drop target always wins.
+      const trackId =
+        (!opts.targetTrackId && asset.kind === 'audio'
+          ? acquireFreeTrack(engine, 'audio', desiredStart, fullDuration, opts.reserveTrack)
+              ?.trackId
+          : undefined) ?? target.trackId
+
+      const r = resolveOn(engine, trackId, desiredStart, fullDuration)
       const clip = addMediaClip(
         engine,
-        target.trackId,
+        trackId,
         mediaKindToClipType(asset.kind),
         asset,
         r.startFrame,
         r.durationFrames,
       )
-      return { ok: true, kind: asset.kind, trackId: target.trackId, clipIds: [clip.id] }
+      return { ok: true, kind: asset.kind, trackId, clipIds: [clip.id] }
     }
 
-    if (!target.created) return run()
-
+    // Always batched: run() may add an audio lane, and that lane plus the clip
+    // must collapse into one undo entry.
     let result: InsertAssetResult = mediaRefusal(asset.kind, 'no-track')
     engine.batch(() => {
       result = run()
@@ -422,18 +555,31 @@ export function insertElement(
   const run = (): InsertAssetResult => {
     const fps = engine.getProject().fps
     const elemDuration = Math.max(1, fps * DEFAULT_TEXT_DURATION_SEC)
-    const { startFrame, durationFrames } = resolveOn(
-      engine,
-      target.trackId,
-      currentDesiredStart(opts),
-      elemDuration,
-    )
-    const clip = addElementClip(engine, target.trackId, payload, startFrame, durationFrames)
-    return { ok: true, kind: 'element', trackId: target.trackId, clipIds: [clip.id] }
+    const desired = currentDesiredStart(opts)
+
+    // Tap insertion (no explicit track) layers onto a lane that is free right
+    // here, adding one if every lane is busy — so stacking a title over a
+    // caption over a shape at the same moment just works. A real drop keeps the
+    // lane the user aimed at, occupied or not.
+    let trackId = target.trackId
+    if (!opts.targetTrackId) {
+      const acquired = acquireFreeTrack(
+        engine,
+        'elements',
+        desired,
+        elemDuration,
+        opts.reserveTrack,
+      )
+      if (acquired) trackId = acquired.trackId
+    }
+
+    const { startFrame, durationFrames } = resolveOn(engine, trackId, desired, elemDuration)
+    const clip = addElementClip(engine, trackId, payload, startFrame, durationFrames)
+    return { ok: true, kind: 'element', trackId, clipIds: [clip.id] }
   }
 
-  if (!target.created) return run()
-
+  // Always batched: run() can create a lane, and adding that lane plus the clip
+  // has to collapse into a single undo entry.
   let result: InsertAssetResult = elementRefusal('no-track')
   engine.batch(() => {
     result = run()

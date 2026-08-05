@@ -60,7 +60,8 @@ export { defaultAudioResolver } from '@elah/core'
 export type { AudioResolver } from '@elah/core'
 
 export { useMediaLibrary, useMediaLibraryStore, MEDIA_DRAG_MIME, mediaDragKindMime, importFiles, importUrl } from '@elah/core'
-export type { MediaAsset, MediaKind, DragMediaPayload, ImportFilesOptions, ImportFilesResult, SkippedImport } from '@elah/core'
+export { makeVideoThumbnailStrip, makeImageThumbnail, computeWaveform } from '@elah/core'
+export type { MediaAsset, MediaKind, DragMediaPayload, ImportFilesOptions, ImportFilesResult, ImportUrlOptions, SkippedImport } from '@elah/core'
 
 export { useTracksStore } from '@elah/core'
 export { usePlaybackStore } from '@elah/core'
@@ -92,7 +93,7 @@ export { useTracks } from '@elah/timeline'
 export { usePlayback } from '@elah/timeline'
 export { useSelection } from '@elah/timeline'
 export { useTimelineDrop } from '@elah/timeline'
-export { insertMediaAsset, insertElement } from '@elah/timeline'
+export { insertMediaAsset, insertElement, resolveDropFrame } from '@elah/timeline'
 export { ELEMENT_DRAG_MIME } from '@elah/timeline'
 export type {
   DragElementPayload,

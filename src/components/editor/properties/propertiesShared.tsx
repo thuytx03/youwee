@@ -1,6 +1,6 @@
 'use client'
 
-import { type ReactNode } from 'react'
+import { type CSSProperties, type ReactNode } from 'react'
 import { ChevronUp, ChevronDown } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import type { Clip } from '@elah/editor'
@@ -139,4 +139,151 @@ export function PanelHeader({ subtitle }: { subtitle?: string }) {
 
 export function mergeTransform(c: Partial<Clip>) {
   return { x: 0.5, y: 0.5, scale: 1, rotation: 0, anchor: { x: 0.5, y: 0.5 }, ...c.transform }
+}
+
+// ---------------------------------------------------------------------------
+// Color helpers — a Clip's backgroundColor is a single CSS color string, while
+// the UI edits it as separate hex + opacity. These convert between the two.
+// ---------------------------------------------------------------------------
+
+/** Combine a hex color + 0..1 opacity into the `rgba()` string clips store. */
+export function hexToRgba(hex: string, opacity: number): string {
+  const m = hex.replace('#', '')
+  const r = parseInt(m.slice(0, 2), 16)
+  const g = parseInt(m.slice(2, 4), 16)
+  const b = parseInt(m.slice(4, 6), 16)
+  return `rgba(${r}, ${g}, ${b}, ${opacity})`
+}
+
+/**
+ * Inverse of hexToRgba, so a control can show the color actually painted.
+ *
+ * Only `rgb()`/`rgba()` and bare `#rrggbb` are understood — every value this
+ * app writes goes through hexToRgba, so anything else (a named color, hsl())
+ * is foreign and falls back to the default rather than guessing.
+ */
+export function rgbaToHexOpacity(color: string | undefined): { hex: string; opacity: number } {
+  const rgba = color?.match(/rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*(?:,\s*([\d.]+)\s*)?\)/)
+  if (rgba) {
+    const toHex = (n: string) => Number(n).toString(16).padStart(2, '0')
+    return {
+      hex: `#${toHex(rgba[1])}${toHex(rgba[2])}${toHex(rgba[3])}`,
+      opacity: rgba[4] !== undefined ? Number(rgba[4]) : 1,
+    }
+  }
+  if (color && /^#[0-9a-f]{6}$/i.test(color)) return { hex: color.toLowerCase(), opacity: 1 }
+  return { hex: '#000000', opacity: 0.6 }
+}
+
+/**
+ * Color swatch + hex text input. The picker commits immediately (it already
+ * has its own confirm step), while the text field previews on change and only
+ * commits on blur so a half-typed hex never reaches the engine.
+ */
+export function ColorRow({
+  value,
+  fallback,
+  onPreview,
+  onCommit,
+}: {
+  value: string | undefined
+  fallback: string
+  onPreview: (v: string) => void
+  onCommit: (v: string) => void
+}) {
+  const current = value ?? fallback
+  return (
+    <div className="flex gap-1.5 items-center">
+      <input
+        type="color"
+        value={current}
+        onChange={(e) => onCommit(e.target.value)}
+        className="w-9 h-8 p-0 border border-ed-border rounded-md cursor-pointer bg-transparent shrink-0"
+      />
+      <input
+        type="text"
+        value={current}
+        onChange={(e) => onPreview(e.target.value)}
+        onBlur={() => onCommit(current)}
+        className={cn(inputCls, 'font-mono')}
+      />
+    </div>
+  )
+}
+
+/** Two-or-more mutually exclusive options rendered as one segmented control. */
+export function SegmentedToggle<T extends string>({
+  value,
+  options,
+  onChange,
+}: {
+  value: T
+  options: { id: T; label: string }[]
+  onChange: (id: T) => void
+}) {
+  return (
+    <div className="flex gap-2">
+      {options.map((o) => (
+        <button
+          key={o.id}
+          type="button"
+          onClick={() => onChange(o.id)}
+          className={cn(
+            'flex-1 rounded-md px-2 py-1.5 text-xs border transition-colors cursor-pointer',
+            value === o.id
+              ? 'bg-ed-accent-soft text-ed-accent-hover border-ed-accent'
+              : 'bg-ed-bg text-ed-text-muted border-ed-border hover:text-ed-text',
+          )}
+        >
+          {o.label}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+/**
+ * Grid of one-click style templates. `chipStyle` lets a chip preview what it
+ * applies (a font chip renders in its own font, a color chip paints itself),
+ * which is the whole point of a template picker.
+ */
+export function PresetChips<T extends { id: string }>({
+  presets,
+  activeId,
+  columns,
+  onPick,
+  renderLabel,
+  chipStyle,
+  chipClassName,
+}: {
+  presets: readonly T[]
+  activeId?: string
+  columns: 2 | 3 | 4
+  onPick: (p: T) => void
+  renderLabel: (p: T) => ReactNode
+  chipStyle?: (p: T) => CSSProperties
+  chipClassName?: string
+}) {
+  const cols = { 2: 'grid-cols-2', 3: 'grid-cols-3', 4: 'grid-cols-4' }[columns]
+  return (
+    <div className={cn('grid gap-1.5', cols)}>
+      {presets.map((p) => (
+        <button
+          key={p.id}
+          type="button"
+          onClick={() => onPick(p)}
+          style={chipStyle?.(p)}
+          className={cn(
+            'rounded-md px-1 py-1.5 text-xs border transition-colors truncate cursor-pointer',
+            activeId === p.id
+              ? 'border-ed-accent ring-1 ring-ed-accent text-ed-text'
+              : 'border-ed-border text-ed-text-muted hover:bg-ed-elevated',
+            chipClassName,
+          )}
+        >
+          {renderLabel(p)}
+        </button>
+      ))}
+    </div>
+  )
 }

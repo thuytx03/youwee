@@ -229,7 +229,8 @@
       "selectTextClip": "編集するテキストクリップを選択",
       "textContent": "テキスト",
       "fitToFrame": "フレームに合わせる",
-      "fitTimeline": "タイムラインに合わせる"
+      "fitTimeline": "タイムラインに合わせる",
+      "textColor": "文字色"
     },
     "lib": {
       "media": "メディア",
@@ -321,7 +322,27 @@
       "bgNone": "なし",
       "bgSolid": "塗りつぶし",
       "bgColor": "背景色",
-      "bgOpacity": "背景の不透明度"
+      "bgOpacity": "背景の不透明度",
+      "fontPresets": "Font template",
+      "bgPresets": "Background template",
+      "fontPreset": {
+        "sans": "Sans",
+        "sansBold": "Sans Bold",
+        "serif": "Serif",
+        "serifBold": "Serif Bold",
+        "mono": "Mono",
+        "impact": "Impact"
+      },
+      "bgPreset": {
+        "none": "None",
+        "black": "Black 60%",
+        "blackSolid": "Black",
+        "white": "White",
+        "yellow": "Yellow",
+        "red": "Red",
+        "blue": "Blue",
+        "green": "Green"
+      }
     }
   },
   "logs": {

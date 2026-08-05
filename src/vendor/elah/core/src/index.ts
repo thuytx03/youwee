@@ -103,6 +103,9 @@ export {
   importFiles,
   importUrl,
   importBlob,
+  makeVideoThumbnailStrip,
+  makeImageThumbnail,
+  computeWaveform,
 } from './assets'
 export type {
   MediaAsset,

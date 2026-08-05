@@ -25,17 +25,24 @@ import {
 import { cn } from '@/lib/utils'
 import {
   inputCls,
+  ColorRow,
   Field,
   NumberField,
+  PresetChips,
+  SegmentedToggle,
   SliderRow,
   PANEL,
   PanelHeader,
+  hexToRgba,
   mergeTransform,
+  rgbaToHexOpacity,
 } from './propertiesShared'
+import { ApplyToAllSubtitles } from './ApplyToAllSubtitles'
+import { BG_PRESETS, FONT_PRESETS } from './textPresets'
 
 const FONTS = ['sans-serif', 'serif', 'monospace', 'Georgia', 'Impact']
 
-type Tab = 'style' | 'transform' | 'animate'
+type Tab = 'style' | 'presets' | 'transform' | 'animate'
 
 function AlignBtn({
   value,
@@ -86,6 +93,7 @@ export function TextClipProperties() {
   const { t } = useTranslation('pages')
   const TABS: { id: Tab; label: string }[] = [
     { id: 'style', label: t('editor.ui.style') },
+    { id: 'presets', label: t('editor.ui.presets') },
     { id: 'transform', label: t('editor.ui.transform') },
     { id: 'animate', label: t('editor.ui.animate') },
   ]
@@ -124,12 +132,45 @@ export function TextClipProperties() {
     setLocal((p) => ({ ...p, transform: { ...mergeTransform(effective), ...patch } }))
   const commitTf = () => commit({ transform: mergeTransform(effective) })
 
+  // Background is one CSS color on the clip; the UI edits hex and opacity
+  // separately, so decompose on read and recombine on every write.
+  const bgEnabled = !!effective.backgroundColor
+  const { hex: bgHex, opacity: bgOpacity } = rgbaToHexOpacity(effective.backgroundColor)
+  // The renderer falls back to 20% of the font size when padding is unset
+  // (TextLayer._paint), so show that value rather than a misleading 0.
+  const bgPadding = effective.backgroundPadding ?? Math.round((effective.fontSize ?? 48) * 0.2)
+
+  // A preset counts as active only when every field it writes matches, so
+  // hand-tweaking any control afterwards correctly deselects the chip.
+  const activeFontPresetId = FONT_PRESETS.find(
+    (p) =>
+      p.fontFamily === effective.fontFamily && p.fontWeight === (effective.fontWeight ?? 'normal'),
+  )?.id
+  const activeBgPresetId = BG_PRESETS.find((p) =>
+    p.bg === null
+      ? !bgEnabled && p.textColor === effective.color
+      : bgEnabled &&
+        p.bg.color.toLowerCase() === bgHex.toLowerCase() &&
+        Math.abs(p.bg.opacity - bgOpacity) < 0.001 &&
+        p.textColor === effective.color,
+  )?.id
+
+  const applyFontPreset = (p: (typeof FONT_PRESETS)[number]) =>
+    commit({ fontFamily: p.fontFamily, fontWeight: p.fontWeight })
+
+  const applyBgPreset = (p: (typeof BG_PRESETS)[number]) =>
+    commit({
+      color: p.textColor,
+      backgroundColor: p.bg ? hexToRgba(p.bg.color, p.bg.opacity) : undefined,
+    })
+
   return (
     <div className={cn(PANEL, 'overflow-hidden')}>
       <PanelHeader subtitle={`${clip.name} · 0:${startSec.padStart(2, '0')}–0:${endSec.padStart(2, '0')}`} />
 
-      {/* Tabs — active gets a cyan underline (Figma) */}
-      <div className="flex items-center gap-4 px-4 border-b border-ed-border shrink-0">
+      {/* Tabs — active gets a cyan underline (Figma). gap-3 (not gap-4) so four
+          tabs still fit the 300px panel without wrapping. */}
+      <div className="flex items-center gap-3 px-4 border-b border-ed-border shrink-0">
         {TABS.map((t) => (
           <button
             key={t.id}
@@ -226,7 +267,9 @@ export function TextClipProperties() {
               </div>
             </Field>
 
-            <Field label={t('editor.ui.fill')}>
+            {/* Not editor.ui.fill — that key is the shape panel's shapeFill.
+                This writes clip.color, so it needs its own label. */}
+            <Field label={t('editor.ui.textColor')}>
               <div className="flex gap-1.5 items-center">
                 <input
                   type="color"
@@ -256,6 +299,90 @@ export function TextClipProperties() {
               step={0.01}
               onChange={(v) => commit({ opacity: v })}
             />
+
+            <Field label={t('editor.subtitleDub.background')}>
+              <SegmentedToggle
+                value={bgEnabled ? 'solid' : 'none'}
+                options={[
+                  { id: 'none', label: t('editor.subtitleDub.bgNone') },
+                  { id: 'solid', label: t('editor.subtitleDub.bgSolid') },
+                ]}
+                onChange={(id) =>
+                  commit({
+                    backgroundColor: id === 'solid' ? hexToRgba(bgHex, bgOpacity) : undefined,
+                  })
+                }
+              />
+            </Field>
+
+            {bgEnabled && (
+              <>
+                <Field label={t('editor.subtitleDub.bgColor')}>
+                  <ColorRow
+                    value={bgHex}
+                    fallback="#000000"
+                    onPreview={(v) => setLocal((p) => ({ ...p, backgroundColor: hexToRgba(v, bgOpacity) }))}
+                    onCommit={(v) => commit({ backgroundColor: hexToRgba(v, bgOpacity) })}
+                  />
+                </Field>
+                <SliderRow
+                  label={t('editor.subtitleDub.bgOpacity')}
+                  value={bgOpacity}
+                  display={`${Math.round(bgOpacity * 100)}%`}
+                  min={0}
+                  max={1}
+                  step={0.05}
+                  onChange={(v) => commit({ backgroundColor: hexToRgba(bgHex, v) })}
+                />
+                <Field label={t('editor.ui.backgroundPadding')}>
+                  <NumberField
+                    value={bgPadding}
+                    step={1}
+                    min={0}
+                    max={200}
+                    suffix="px"
+                    onChange={(v) => setLocal((p) => ({ ...p, backgroundPadding: v }))}
+                    onCommit={() => {
+                      if (bgPadding !== clip.backgroundPadding) {
+                        commit({ backgroundPadding: bgPadding })
+                      }
+                    }}
+                  />
+                </Field>
+              </>
+            )}
+          </>
+        )}
+
+        {tab === 'presets' && (
+          <>
+            <Field label={t('editor.subtitleDub.fontPresets')}>
+              <PresetChips
+                presets={FONT_PRESETS}
+                activeId={activeFontPresetId}
+                columns={3}
+                onPick={applyFontPreset}
+                chipStyle={(p) => ({ fontFamily: p.fontFamily, fontWeight: p.fontWeight })}
+                renderLabel={(p) => t(`editor.subtitleDub.fontPreset.${p.id}`)}
+              />
+            </Field>
+
+            <Field label={t('editor.subtitleDub.bgPresets')}>
+              <PresetChips
+                presets={BG_PRESETS}
+                activeId={activeBgPresetId}
+                columns={4}
+                onPick={applyBgPreset}
+                chipClassName="h-7 text-[10px]"
+                chipStyle={(p) => ({
+                  background: p.bg ? hexToRgba(p.bg.color, p.bg.opacity) : 'transparent',
+                  color: p.textColor,
+                })}
+                renderLabel={(p) => (p.bg ? 'Aa' : t('editor.subtitleDub.bgNone'))}
+              />
+            </Field>
+
+            <ApplyToAllSubtitles clip={clip} />
           </>
         )}
 
@@ -299,6 +426,11 @@ export function TextClipProperties() {
                 onCommit={commitTf}
               />
             </Field>
+            {/* Dragging on the preview is the fast path for positioning; these
+                fields are the precise one. Nothing else advertises the drag. */}
+            <div className="text-[11px] text-ed-text-muted -mt-1">
+              {t('editor.subtitleDub.dragToPositionHint')}
+            </div>
           </>
         )}
 

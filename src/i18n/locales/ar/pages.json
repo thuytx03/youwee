@@ -229,7 +229,8 @@
       "selectTextClip": "اختر مقطع نص لتحرير الخصائص",
       "textContent": "نص",
       "fitToFrame": "ملء الإطار",
-      "fitTimeline": "ملء الخط الزمني"
+      "fitTimeline": "ملء الخط الزمني",
+      "textColor": "لون النص"
     },
     "lib": {
       "media": "الوسائط",
@@ -321,7 +322,27 @@
       "bgNone": "بدون خلفية",
       "bgSolid": "خلفية معتمة",
       "bgColor": "لون الخلفية",
-      "bgOpacity": "شفافية الخلفية"
+      "bgOpacity": "شفافية الخلفية",
+      "fontPresets": "Font template",
+      "bgPresets": "Background template",
+      "fontPreset": {
+        "sans": "Sans",
+        "sansBold": "Sans Bold",
+        "serif": "Serif",
+        "serifBold": "Serif Bold",
+        "mono": "Mono",
+        "impact": "Impact"
+      },
+      "bgPreset": {
+        "none": "None",
+        "black": "Black 60%",
+        "blackSolid": "Black",
+        "white": "White",
+        "yellow": "Yellow",
+        "red": "Red",
+        "blue": "Blue",
+        "green": "Green"
+      }
     }
   },
   "logs": {

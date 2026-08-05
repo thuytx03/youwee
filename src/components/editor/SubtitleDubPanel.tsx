@@ -1,8 +1,8 @@
 import type { Clip, TimelineEngine } from '@elah/editor';
-import { useMediaLibraryStore, useSelectionStore } from '@elah/editor';
+import { useMediaLibraryStore, useTracksStore } from '@elah/editor';
 import { open } from '@tauri-apps/plugin-dialog';
 import { readTextFile } from '@tauri-apps/plugin-fs';
-import { Captions, Languages, Loader2, Mic, Music, SpellCheck, Wand2 } from 'lucide-react';
+import { Captions, Languages, Loader2, Mic, Music, SpellCheck, Volume2, Wand2 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -26,7 +26,6 @@ import { useToast } from '@/components/ui/toast';
 import { useAI } from '@/contexts/AIContext';
 import { ttsSynthesize, transcribeVideoBytes } from '@/contexts/editor/editor-client';
 import { toAssetUrl } from '@/lib/asset-access';
-import { cn } from '@/lib/utils';
 import { parseSubtitles, type SubtitleEntry } from '@/lib/subtitle-parser';
 import {
   proofreadSubtitleTexts,
@@ -40,6 +39,14 @@ import {
   TTS_VOICES,
   type TtsProvider,
 } from '@/lib/tts-voices';
+import type { SubtitleDubDraft } from '@/lib/editor-drafts';
+import {
+  DEFAULT_SUBTITLE_STYLE,
+  fitCaptionToVideo,
+  ORIGINAL_TRACK_NAME,
+  SUBTITLE_TRACK_NAMES,
+  TRANSLATED_TRACK_NAME,
+} from './properties/textPresets';
 
 const FPS = 30;
 const msToFrame = (ms: number) => Math.max(1, Math.round((ms / 1000) * FPS));
@@ -51,29 +58,22 @@ function formatTimecode(ms: number): string {
   return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
 
-// Combine a hex color + 0..1 opacity into an rgba() string for Clip.backgroundColor.
-function hexToRgba(hex: string, opacity: number): string {
-  const m = hex.replace('#', '');
-  const r = parseInt(m.slice(0, 2), 16);
-  const g = parseInt(m.slice(2, 4), 16);
-  const b = parseInt(m.slice(4, 6), 16);
-  return `rgba(${r}, ${g}, ${b}, ${opacity})`;
-}
-
-// Inverse of hexToRgba — reads back a clip's backgroundColor so the per-line
-// editor can show the same color/opacity that's actually painted.
-function rgbaToHexOpacity(rgba: string | undefined): { hex: string; opacity: number } {
-  const m = rgba?.match(/rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*(?:,\s*([\d.]+)\s*)?\)/);
-  if (!m) return { hex: '#000000', opacity: 0.6 };
-  const toHex = (n: string) => Number(n).toString(16).padStart(2, '0');
-  return { hex: `#${toHex(m[1])}${toHex(m[2])}${toHex(m[3])}`, opacity: m[4] !== undefined ? Number(m[4]) : 1 };
-}
-
 interface Props {
   engine: TimelineEngine | null;
+  /**
+   * Subtitle state restored from a saved draft. Read once, to seed initial
+   * state — this panel stays mounted for the whole session, so it owns the
+   * state from then on.
+   */
+  initialDraft?: SubtitleDubDraft;
+  /**
+   * Report the persistable slice upward so the draft autosave can include it.
+   * Transient fields (busy, progress, prompts) are deliberately excluded.
+   */
+  onDraftChange?: (draft: SubtitleDubDraft) => void;
 }
 
-export function SubtitleDubPanel({ engine }: Props) {
+export function SubtitleDubPanel({ engine, initialDraft, onDraftChange }: Props) {
   const { t, i18n } = useTranslation('pages');
   const toast = useToast();
   const ai = useAI();
@@ -81,8 +81,14 @@ export function SubtitleDubPanel({ engine }: Props) {
   // Original-language entries (from Whisper or an uploaded file) and, once
   // translated, a separate set of translated entries — kept side by side so
   // the user can add either one to the timeline independently.
-  const [entries, setEntries] = useState<SubtitleEntry[]>([]);
-  const [translatedEntries, setTranslatedEntries] = useState<SubtitleEntry[] | null>(null);
+  // Seeded from the draft so reopening a project doesn't force a re-transcribe
+  // (Whisper is slow and costs API credits).
+  const [entries, setEntries] = useState<SubtitleEntry[]>(
+    () => (initialDraft?.entries as SubtitleEntry[] | undefined) ?? [],
+  );
+  const [translatedEntries, setTranslatedEntries] = useState<SubtitleEntry[] | null>(
+    () => (initialDraft?.translatedEntries as SubtitleEntry[] | null | undefined) ?? null,
+  );
   const [busy, setBusy] = useState<string>(''); // '', 'transcribe', 'proofread', 'translate', 'dub'
   const [progress, setProgress] = useState('');
   const abortRef = useRef<AbortController | null>(null);
@@ -91,62 +97,78 @@ export function SubtitleDubPanel({ engine }: Props) {
   // never wipes out the other — the user can have both on the timeline at once.
   const originalTrackId = useRef<string | null>(null);
   const translatedTrackId = useRef<string | null>(null);
-  const isSubtitleTrack = (trackId: string) =>
-    trackId === originalTrackId.current || trackId === translatedTrackId.current;
+
+  /**
+   * Whether a track holds subtitles. The refs above are only populated by
+   * handleAddSubtitles, so checking them alone fails for tracks this mount
+   * didn't create (after a remount, or on a project reopened from disk).
+   * Falling back to the tracks' stable names covers both cases.
+   */
+  const isSubtitleTrack = (trackId: string): boolean => {
+    if (trackId === originalTrackId.current || trackId === translatedTrackId.current) return true;
+    const track = engine?.getProject().tracks.find((tr) => tr.id === trackId);
+    return !!track && track.kind === 'elements' && SUBTITLE_TRACK_NAMES.includes(track.name);
+  };
   // Reused across dub runs so re-generating (after editing subtitles or
   // switching voice) replaces the previous voiceover instead of stacking a
   // new "Voiceover" track each time.
   const dubTrackId = useRef<string | null>(null);
-  // Selected clips on the timeline (Elah selection store) — used to detect
-  // "exactly one subtitle clip selected", which switches on tier 2 (per-line edit).
-  const selectedClipIds = useSelectionStore((s) => s.selectedClipIds);
-
-  // Tier 1 — shared style, applied to every subtitle clip.
-  const [styleX, setStyleX] = useState(0.5);
-  const [styleY, setStyleY] = useState(0.86);
-  const [styleScale, setStyleScale] = useState(1);
-  const [styleFontSize, setStyleFontSize] = useState(42);
-  const [styleColor, setStyleColor] = useState('#ffffff');
-  // Caption background — off by default; hex + opacity are combined into an
-  // rgba() string when applied (Clip.backgroundColor).
-  const [styleBgEnabled, setStyleBgEnabled] = useState(false);
-  const [styleBgColor, setStyleBgColor] = useState('#000000');
-  const [styleBgOpacity, setStyleBgOpacity] = useState(0.6);
-  const styleBackgroundColor = styleBgEnabled ? hexToRgba(styleBgColor, styleBgOpacity) : undefined;
+  // Position new subtitles start at. Still stateful because dragging a caption
+  // on the preview and choosing "apply to all" feeds the position back here, so
+  // subtitles re-added afterwards land where the user put them.
+  const [styleX, setStyleX] = useState(initialDraft?.styleX ?? 0.5);
+  const [styleY, setStyleY] = useState(initialDraft?.styleY ?? 0.86);
+  const [styleScale, setStyleScale] = useState(initialDraft?.styleScale ?? 1);
+  // Until the user has positioned a caption by hand, placement is derived from
+  // the video picture (which moves with the aspect ratio). After that their
+  // choice is authoritative and must not be recomputed out from under them.
+  const [styleMoved, setStyleMoved] = useState(initialDraft?.styleMoved ?? false);
 
   // Default translation target = active app language.
   const defaultTarget = useMemo(
     () => resolveTargetLanguage(i18n.resolvedLanguage || i18n.language || 'en'),
     [i18n.resolvedLanguage, i18n.language],
   );
-  const [targetCode, setTargetCode] = useState(defaultTarget.code);
+  const [targetCode, setTargetCode] = useState(initialDraft?.targetCode ?? defaultTarget.code);
   const targetName = LANGUAGE_OPTIONS.find((o) => o.code === targetCode)?.name ?? 'English';
+
+  // Publish the persistable slice upward whenever it changes; the draft
+  // autosave reads it on its own schedule. Transient fields (busy, progress,
+  // applyPrompt) are excluded — they'd be meaningless after a reopen.
+  useEffect(() => {
+    onDraftChange?.({
+      entries,
+      translatedEntries,
+      targetCode,
+      styleX,
+      styleY,
+      styleScale,
+      styleMoved,
+    });
+  }, [
+    onDraftChange,
+    entries,
+    translatedEntries,
+    targetCode,
+    styleX,
+    styleY,
+    styleScale,
+    styleMoved,
+  ]);
 
   const ttsProvider: TtsProvider = ai.config.provider === 'openai' ? 'openai' : 'gemini';
   const [voice, setVoice] = useState(TTS_VOICES[ttsProvider][0].id);
-
-  // Tier 2 — exactly one subtitle clip selected on the timeline → per-line edit.
-  // Dragging/resizing the clip on the Preview updates it in the engine without
-  // changing the selection, so we also re-read on every 'clip:updated' event
-  // (via this counter) to keep the sliders in sync with the live position.
-  const [clipVersion, setClipVersion] = useState(0);
+  const ttsModel = DEFAULT_TTS_MODEL[ttsProvider];
+  // Voice sample playback: a plain <audio> element, kept in a ref so switching
+  // voices can stop the previous sample instead of layering them.
+  const [previewingVoice, setPreviewingVoice] = useState(false);
+  const previewAudioRef = useRef<HTMLAudioElement | null>(null);
   useEffect(() => {
-    if (!engine) return;
-    const onUpdated = (clip: Clip) => {
-      if (selectedClipIds.has(clip.id)) setClipVersion((v) => v + 1);
+    return () => {
+      previewAudioRef.current?.pause();
+      previewAudioRef.current = null;
     };
-    engine.on('clip:updated', onUpdated);
-    return () => engine.off('clip:updated', onUpdated);
-  }, [engine, selectedClipIds]);
-  const selectedSubtitleClip = useMemo(() => {
-    if (!engine || selectedClipIds.size !== 1) return null;
-    const id = selectedClipIds.values().next().value as string;
-    const found = engine.findClip(id);
-    if (!found || found.clip.type !== 'text') return null;
-    if (!isSubtitleTrack(found.trackId)) return null;
-    return found;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [engine, selectedClipIds, clipVersion]);
+  }, []);
 
   // Dragging/resizing a subtitle clip directly on the Preview is the primary
   // way to reposition it now. Elah fires 'clip:updated' on EVERY drag tick
@@ -157,8 +179,6 @@ export function SubtitleDubPanel({ engine }: Props) {
   // drag on one must never carry over to the other.
   const [applyPrompt, setApplyPrompt] = useState<{
     transform: NonNullable<Clip['transform']>;
-    fontSize?: number;
-    color?: string;
     trackId: string;
     others: { id: string; trackId: string }[];
   } | null>(null);
@@ -167,6 +187,9 @@ export function SubtitleDubPanel({ engine }: Props) {
   // fires 'clip:updated' right back at us — guard against re-opening the
   // prompt from our own writes, otherwise it loops forever.
   const applyingRef = useRef(false);
+  // Last position seen per clip id. The prompt must only follow an actual move,
+  // and 'clip:updated' carries no before-value, so we track it ourselves.
+  const lastTransformRef = useRef<Map<string, { x: number; y: number; scale: number }>>(new Map());
   useEffect(() => {
     if (!engine) return;
     const onUpdated = (clip: Clip) => {
@@ -174,6 +197,22 @@ export function SubtitleDubPanel({ engine }: Props) {
       if (clip.type !== 'text' || !isSubtitleTrack(clip.trackId)) return;
       const tf = clip.transform;
       if (!tf) return;
+
+      // Only a real position change may prompt. Every style edit in the
+      // properties panel also emits 'clip:updated' on these very clips, and
+      // testing "transform exists" would fire the dialog on all of them.
+      const prev = lastTransformRef.current.get(clip.id);
+      const cur = { x: tf.x, y: tf.y, scale: tf.scale };
+      lastTransformRef.current.set(clip.id, cur);
+      // No baseline yet (first update after load/creation) is never a move.
+      if (!prev) return;
+      const EPS = 1e-4;
+      const moved =
+        Math.abs(prev.x - cur.x) > EPS ||
+        Math.abs(prev.y - cur.y) > EPS ||
+        Math.abs(prev.scale - cur.scale) > EPS;
+      if (!moved) return;
+
       const trackId = clip.trackId;
       if (dragSettleTimer.current) clearTimeout(dragSettleTimer.current);
       dragSettleTimer.current = setTimeout(() => {
@@ -182,7 +221,7 @@ export function SubtitleDubPanel({ engine }: Props) {
           .filter((c) => c.type === 'text' && c.id !== clip.id)
           .map((c) => ({ id: c.id, trackId }));
         if (others.length === 0) return;
-        setApplyPrompt({ transform: tf, fontSize: clip.fontSize, color: clip.color, trackId, others });
+        setApplyPrompt({ transform: tf, trackId, others });
       }, 500);
     };
     engine.on('clip:updated', onUpdated);
@@ -194,19 +233,30 @@ export function SubtitleDubPanel({ engine }: Props) {
 
   const confirmApplyToAll = () => {
     if (!engine || !applyPrompt) return;
-    const { others, transform: tf, fontSize, color } = applyPrompt;
+    const { others, transform: tf } = applyPrompt;
     applyingRef.current = true;
     engine.batch(() => {
       for (const { id, trackId } of others) {
-        engine.updateClip(id, trackId, { transform: { ...tf, rotation: 0 }, fontSize, color });
+        // Position only. Propagating fontSize/color here used to overwrite every
+        // caption's styling as a side effect of dragging one of them; bulk
+        // styling is now an explicit action in the properties panel.
+        engine.updateClip(id, trackId, { transform: { ...tf, rotation: 0 } });
       }
     }, 'Apply subtitle position to all');
     // engine.updateClip() emits 'clip:updated' synchronously, so the guard
     // can be released right after the batch call completes.
     applyingRef.current = false;
+    // Those writes were suppressed by the guard above, so record the positions
+    // we just set. Without this the siblings keep a stale baseline and the next
+    // drag of any of them would look like a move from the old position.
+    for (const { id } of others) {
+      lastTransformRef.current.set(id, { x: tf.x, y: tf.y, scale: tf.scale });
+    }
     setStyleX(tf.x);
     setStyleY(tf.y);
     setStyleScale(tf.scale);
+    // The user has now chosen a position explicitly; stop deriving it.
+    setStyleMoved(true);
     setApplyPrompt(null);
   };
 
@@ -354,6 +404,91 @@ export function SubtitleDubPanel({ engine }: Props) {
   const updateTranslatedEntryText = (id: string, text: string) =>
     setTranslatedEntries((prev) => (prev ? prev.map((e) => (e.id === id ? { ...e, text } : e)) : prev));
 
+  /**
+   * Intrinsic size of the video the captions belong to. Read from the asset
+   * behind the first video clip on the timeline (that's what the preview is
+   * showing); undefined when there is none, in which case the caller treats the
+   * stage as the picture.
+   */
+  const videoContentSize = (): { width?: number; height?: number } | undefined => {
+    if (!engine) return undefined;
+    const project = engine.getProject();
+    const assets = useMediaLibraryStore.getState().assets;
+    for (const track of project.tracks) {
+      if (track.kind !== 'video') continue;
+      for (const c of project.clips[track.id] ?? []) {
+        if (c.type !== 'video' || !c.assetId) continue;
+        const asset = assets[c.assetId];
+        if (asset?.width && asset?.height) return { width: asset.width, height: asset.height };
+      }
+    }
+    return undefined;
+  };
+
+  /**
+   * Re-fit captions already on the timeline when the aspect ratio changes.
+   *
+   * Switching 9:16 → 16:9 keeps every clip's absolute fontSize while the video
+   * shrinks into a letterbox, so captions sized for the old frame overflow the
+   * new picture. Rescale by the change in picture width and re-seat them above
+   * the picture's bottom edge.
+   *
+   * Only fires on an actual stage change (not on mount) and skips clips the user
+   * has repositioned, so it never fights a manual placement.
+   */
+  const stage = useTracksStore((s) => s.stage);
+  const lastStageRef = useRef<{ width: number; height: number } | null>(null);
+  useEffect(() => {
+    if (!engine) return;
+    const prev = lastStageRef.current;
+    lastStageRef.current = stage;
+    if (!prev || (prev.width === stage.width && prev.height === stage.height)) return;
+
+    const video = videoContentSize();
+    const before = fitCaptionToVideo(prev, video);
+    const after = fitCaptionToVideo(stage, video);
+    const ratio = before.fontSize > 0 ? after.fontSize / before.fontSize : 1;
+    if (ratio === 1 && before.y === after.y) return;
+
+    const trackIds = engine
+      .getProject()
+      .tracks.filter((tr) => tr.kind === 'elements' && SUBTITLE_TRACK_NAMES.includes(tr.name))
+      .map((tr) => tr.id);
+    if (trackIds.length === 0) return;
+
+    applyingRef.current = true;
+    engine.batch(() => {
+      for (const trackId of trackIds) {
+        for (const c of engine.getClipsOnTrack(trackId)) {
+          if (c.type !== 'text') continue;
+          const tf = c.transform;
+          engine.updateClip(c.id, trackId, {
+            fontSize: Math.max(12, Math.round((c.fontSize ?? after.fontSize) * ratio)),
+            ...(c.backgroundPadding !== undefined
+              ? { backgroundPadding: Math.max(0, Math.round(c.backgroundPadding * ratio)) }
+              : {}),
+            // Re-seat vertically unless the user moved this caption themselves.
+            ...(styleMoved
+              ? {}
+              : {
+                  transform: {
+                    x: tf?.x ?? 0.5,
+                    y: after.y,
+                    scale: tf?.scale ?? 1,
+                    rotation: tf?.rotation ?? 0,
+                    anchor: tf?.anchor ?? { x: 0.5, y: 0.5 },
+                  },
+                }),
+          });
+        }
+      }
+    }, 'Refit subtitles to aspect ratio');
+    applyingRef.current = false;
+    // videoContentSize/styleMoved are read fresh on each stage change; adding
+    // them as deps would re-run this on unrelated renders.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [engine, stage]);
+
   // ── 3. Add/update subtitle text clips on a dedicated elements track (timed).
   // Original and translated subtitles each get their own track (via
   // trackIdRef) so adding/updating one never touches the other. Elah rejects
@@ -379,6 +514,11 @@ export function SubtitleDubPanel({ engine }: Props) {
       trackId = track.id;
       trackIdRef.current = trackId;
     }
+    // Size and place captions against the video picture, not the stage: a clip
+    // whose aspect differs from the stage is letterboxed, and text laid out
+    // against the stage would spill over the black bars (see fitCaptionToVideo).
+    const fit = fitCaptionToVideo(engine.getProject().stage, videoContentSize());
+
     let added = 0;
     engine.batch(() => {
       const sorted = [...source].sort((a, b) => a.startTime - b.startTime);
@@ -397,16 +537,30 @@ export function SubtitleDubPanel({ engine }: Props) {
             trackId: trackId as string,
             startFrame: startF,
             durationFrames,
+            // Creation-time look. The style controls themselves live in the
+            // properties panel (select a caption), so this is just the starting
+            // point — including "Apply to all subtitles" there to restyle a set.
             text: {
               content: e.text,
-              fontSize: styleFontSize,
-              color: styleColor,
               textAlign: 'center',
-              ...(styleBackgroundColor ? { backgroundColor: styleBackgroundColor } : {}),
+              fontSize: fit.fontSize,
+              color: DEFAULT_SUBTITLE_STYLE.color,
+              fontFamily: DEFAULT_SUBTITLE_STYLE.fontFamily,
+              fontWeight: DEFAULT_SUBTITLE_STYLE.fontWeight,
+              ...(DEFAULT_SUBTITLE_STYLE.backgroundColor
+                ? { backgroundColor: DEFAULT_SUBTITLE_STYLE.backgroundColor }
+                : {}),
             },
-            // Position subtitles at the current style position (y is 0..1 of
-            // stage height, 0.5 = center) so they read like real captions.
-            transform: { x: styleX, y: styleY, scale: styleScale, rotation: 0, anchor: { x: 0.5, y: 0.5 } },
+            // Sit just above the bottom of the video picture. Once the user has
+            // dragged a caption and applied that position to all, styleY holds
+            // their choice and wins over the computed placement.
+            transform: {
+              x: styleX,
+              y: styleMoved ? styleY : fit.y,
+              scale: styleScale,
+              rotation: 0,
+              anchor: { x: 0.5, y: 0.5 },
+            },
           });
           added += 1;
         } catch {
@@ -417,96 +571,52 @@ export function SubtitleDubPanel({ engine }: Props) {
     toast.success({ title: t('editor.subtitleDub.subtitlesAdded', { count: added }) });
   };
 
-  // Apply the shared style to every subtitle clip currently on the timeline,
-  // across both the original and translated tracks (rotation reset to 0 so
-  // any clip nudged by hand snaps back in line).
-  const applyStyleToAll = (
-    over: Partial<{ x: number; y: number; scale: number; fontSize: number; color: string; backgroundColor?: string }> = {},
-  ) => {
-    if (!engine) return;
-    const x = over.x ?? styleX;
-    const y = over.y ?? styleY;
-    const scale = over.scale ?? styleScale;
-    const fontSize = over.fontSize ?? styleFontSize;
-    const color = over.color ?? styleColor;
-    const backgroundColor = 'backgroundColor' in over ? over.backgroundColor : styleBackgroundColor;
-    engine.batch(() => {
-      for (const trackId of [originalTrackId.current, translatedTrackId.current]) {
-        if (!trackId) continue;
-        for (const c of engine.getClipsOnTrack(trackId)) {
-          if (c.type !== 'text') continue;
-          engine.updateClip(c.id, trackId, {
-            transform: { x, y, scale, rotation: 0, anchor: { x: 0.5, y: 0.5 } },
-            fontSize,
-            color,
-            backgroundColor,
-          });
-        }
-      }
-    }, 'Update subtitle style');
-  };
-
-  const setScale = (scale: number) => {
-    setStyleScale(scale);
-    applyStyleToAll({ scale });
-  };
-  const setFontSize = (fontSize: number) => {
-    setStyleFontSize(fontSize);
-    applyStyleToAll({ fontSize });
-  };
-  const setColor = (color: string) => {
-    setStyleColor(color);
-    applyStyleToAll({ color });
-  };
-
-  // Background — hex + opacity are only meaningful while enabled; disabling
-  // clears it (applyStyleToAll writes `undefined` explicitly either way).
-  const setBgEnabled = (enabled: boolean) => {
-    setStyleBgEnabled(enabled);
-    applyStyleToAll({ backgroundColor: enabled ? hexToRgba(styleBgColor, styleBgOpacity) : undefined });
-  };
-  const setBgColor = (hex: string) => {
-    setStyleBgColor(hex);
-    if (styleBgEnabled) applyStyleToAll({ backgroundColor: hexToRgba(hex, styleBgOpacity) });
-  };
-  const setBgOpacity = (opacity: number) => {
-    setStyleBgOpacity(opacity);
-    if (styleBgEnabled) applyStyleToAll({ backgroundColor: hexToRgba(styleBgColor, opacity) });
-  };
-
-  // Tier 2 — edit only the single selected subtitle clip, independent of the
-  // shared style above.
-  const updateSelectedClip = (patch: Partial<Clip>) => {
-    if (!engine || !selectedSubtitleClip) return;
-    engine.updateClip(selectedSubtitleClip.clip.id, selectedSubtitleClip.trackId, patch);
-  };
-  const selTf = selectedSubtitleClip?.clip.transform;
-  const selX = selTf?.x ?? 0.5;
-  const selY = selTf?.y ?? 0.86;
-  const selScale = selTf?.scale ?? 1;
-  const selFontSize = selectedSubtitleClip?.clip.fontSize ?? 42;
-  const selColor = selectedSubtitleClip?.clip.color ?? '#ffffff';
-  const setSelScale = (scale: number) =>
-    updateSelectedClip({ transform: { x: selX, y: selY, scale, rotation: 0, anchor: { x: 0.5, y: 0.5 } } });
-  const setSelFontSize = (fontSize: number) => updateSelectedClip({ fontSize });
-  const setSelColor = (color: string) => updateSelectedClip({ color });
-  const selBgEnabled = !!selectedSubtitleClip?.clip.backgroundColor;
-  const { hex: selBgColor, opacity: selBgOpacity } = rgbaToHexOpacity(
-    selectedSubtitleClip?.clip.backgroundColor,
-  );
-  const setSelBgEnabled = (enabled: boolean) =>
-    updateSelectedClip({ backgroundColor: enabled ? hexToRgba(selBgColor, selBgOpacity) : undefined });
-  const setSelBgColor = (hex: string) => {
-    if (selBgEnabled) updateSelectedClip({ backgroundColor: hexToRgba(hex, selBgOpacity) });
-  };
-  const setSelBgOpacity = (opacity: number) => {
-    if (selBgEnabled) updateSelectedClip({ backgroundColor: hexToRgba(selBgColor, opacity) });
-  };
-
   // ── 4. Voiceover: TTS per line, place on a dedicated audio track (keep original).
   // Voice the translated text when available (the point of dubbing is to speak
   // the target language), falling back to the original if not yet translated.
   const dubSource = translatedEntries ?? entries;
+
+  /**
+   * Speak a short sample in the selected voice.
+   *
+   * Dubbing a whole transcript is slow and costs API credits per line, so being
+   * able to hear a voice first is the difference between one run and several.
+   * Samples the user's own first subtitle line when there is one — hearing the
+   * actual script matters more than a canned sentence — and falls back to a
+   * fixed phrase otherwise.
+   */
+  const handlePreviewVoice = async () => {
+    if (!ttsApiKey) {
+      toast.error({ title: t('editor.subtitleDub.needAI'), message: t('editor.subtitleDub.needAIMsg') });
+      return;
+    }
+    // Stop a sample that's already playing so clicking around doesn't overlap.
+    previewAudioRef.current?.pause();
+    previewAudioRef.current = null;
+
+    setPreviewingVoice(true);
+    try {
+      const sample =
+        dubSource.find((e) => e.text.trim())?.text.trim().slice(0, 180) ||
+        t('editor.subtitleDub.previewSampleText');
+      const res = await ttsSynthesize({
+        provider: ttsProvider,
+        voice,
+        text: sample,
+        apiKey: ttsApiKey,
+        model: ttsModel,
+      });
+      const src = await toAssetUrl(res.path);
+      const audio = new Audio(src);
+      previewAudioRef.current = audio;
+      audio.onended = () => setPreviewingVoice(false);
+      audio.onerror = () => setPreviewingVoice(false);
+      await audio.play();
+    } catch (e) {
+      toast.error({ title: t('editor.subtitleDub.previewFailed'), message: String(e) });
+      setPreviewingVoice(false);
+    }
+  };
   const handleDub = async () => {
     if (!engine || dubSource.length === 0) return;
     if (!ttsApiKey) {
@@ -529,7 +639,6 @@ export function SubtitleDubPanel({ engine }: Props) {
       trackId = dubTrack.id;
       dubTrackId.current = trackId;
     }
-    const model = DEFAULT_TTS_MODEL[ttsProvider];
     const sorted = [...dubSource].sort((a, b) => a.startTime - b.startTime);
     // Track the next free frame so back-to-back clips never overlap (A+: if a
     // clip runs long, the next one is pushed later instead of colliding).
@@ -545,7 +654,7 @@ export function SubtitleDubPanel({ engine }: Props) {
           voice,
           text: e.text,
           apiKey: ttsApiKey,
-          model,
+          model: ttsModel,
           windowMs: e.endTime - e.startTime,
           index: i,
         });
@@ -571,8 +680,11 @@ export function SubtitleDubPanel({ engine }: Props) {
 
   const cancel = () => abortRef.current?.abort();
 
+  // shrink-0: the panel is a fixed-width flex column that scrolls as a whole,
+  // so no control should be squeezed to fit — it should push the panel taller
+  // and let the panel scroll instead.
   const btn =
-    'w-full inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm border border-ed-border text-ed-text hover:bg-ed-elevated transition-colors disabled:opacity-40 disabled:cursor-not-allowed';
+    'w-full shrink-0 inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm border border-ed-border text-ed-text hover:bg-ed-elevated transition-colors disabled:opacity-40 disabled:cursor-not-allowed';
   const sectionTitle = 'text-[11px] font-semibold text-ed-text-muted uppercase tracking-wide mt-1';
 
   return (
@@ -604,7 +716,7 @@ export function SubtitleDubPanel({ engine }: Props) {
       <button
         type="button"
         className={btn}
-        onClick={() => handleAddSubtitles(entries, originalTrackId, 'Subtitles (original)')}
+        onClick={() => handleAddSubtitles(entries, originalTrackId, ORIGINAL_TRACK_NAME)}
         disabled={!!busy || entries.length === 0}
       >
         <Wand2 className="w-4 h-4" />
@@ -642,7 +754,7 @@ export function SubtitleDubPanel({ engine }: Props) {
         className={btn}
         onClick={() =>
           translatedEntries &&
-          handleAddSubtitles(translatedEntries, translatedTrackId, 'Subtitles (translated)')
+          handleAddSubtitles(translatedEntries, translatedTrackId, TRANSLATED_TRACK_NAME)
         }
         disabled={!!busy || !translatedEntries || translatedEntries.length === 0}
       >
@@ -652,107 +764,11 @@ export function SubtitleDubPanel({ engine }: Props) {
           : t('editor.subtitleDub.addToTimelineTranslated')}
       </button>
 
-      {/* 3. Style shared by all subtitles */}
-      <div className={sectionTitle}>{t('editor.subtitleDub.styleSection')}</div>
-      <div className="text-[11px] text-ed-text-muted -mt-1">{t('editor.subtitleDub.dragToPositionHint')}</div>
-      <Slider label={t('editor.subtitleDub.scale')} value={styleScale} min={0.2} max={3} step={0.05}
-        display={`${Math.round(styleScale * 100)}%`} onChange={setScale} />
-      <Slider label={t('editor.subtitleDub.fontSize')} value={styleFontSize} min={12} max={120} step={1}
-        display={`${styleFontSize}`} onChange={(v) => setFontSize(Math.round(v))} />
-      <label className="flex items-center justify-between gap-2 text-xs text-ed-text-muted">
-        {t('editor.subtitleDub.color')}
-        <input type="color" value={styleColor} onChange={(ev) => setColor(ev.target.value)}
-          className="w-10 h-7 rounded border border-ed-border bg-transparent cursor-pointer" />
-      </label>
-      <div className="text-[11px] text-ed-text-muted -mb-1">{t('editor.subtitleDub.background')}</div>
-      <div className="flex gap-2">
-        <button
-          type="button"
-          onClick={() => setBgEnabled(false)}
-          className={cn(
-            'flex-1 rounded-md px-2 py-1.5 text-xs border transition-colors',
-            !styleBgEnabled ? 'border-ed-accent text-ed-text' : 'border-ed-border text-ed-text-muted hover:bg-ed-elevated',
-          )}
-        >
-          {t('editor.subtitleDub.bgNone')}
-        </button>
-        <button
-          type="button"
-          onClick={() => setBgEnabled(true)}
-          className={cn(
-            'flex-1 rounded-md px-2 py-1.5 text-xs border transition-colors',
-            styleBgEnabled ? 'border-ed-accent text-ed-text' : 'border-ed-border text-ed-text-muted hover:bg-ed-elevated',
-          )}
-        >
-          {t('editor.subtitleDub.bgSolid')}
-        </button>
+      {/* Positioning lives in the properties panel (select a caption on the
+          timeline), but the drag gesture has no other discoverability. */}
+      <div className="text-[11px] text-ed-text-muted -mt-1">
+        {t('editor.subtitleDub.dragToPositionHint')}
       </div>
-      {styleBgEnabled && (
-        <>
-          <label className="flex items-center justify-between gap-2 text-xs text-ed-text-muted">
-            {t('editor.subtitleDub.bgColor')}
-            <input type="color" value={styleBgColor} onChange={(ev) => setBgColor(ev.target.value)}
-              className="w-10 h-7 rounded border border-ed-border bg-transparent cursor-pointer" />
-          </label>
-          <Slider label={t('editor.subtitleDub.bgOpacity')} value={styleBgOpacity} min={0} max={1} step={0.05}
-            display={`${Math.round(styleBgOpacity * 100)}%`} onChange={setBgOpacity} />
-        </>
-      )}
-
-      {/* 3b. Tier 2 — appears only while exactly one subtitle clip is selected. */}
-      {selectedSubtitleClip && (
-        <>
-          <div className={sectionTitle}>{t('editor.subtitleDub.editSelectedSection')}</div>
-          <div className="text-[11px] text-ed-text-muted -mt-1 truncate">
-            {t('editor.subtitleDub.editingLine', {
-              text: selectedSubtitleClip.clip.content?.slice(0, 40) || '',
-            })}
-          </div>
-          <Slider label={t('editor.subtitleDub.scale')} value={selScale} min={0.2} max={3} step={0.05}
-            display={`${Math.round(selScale * 100)}%`} onChange={setSelScale} />
-          <Slider label={t('editor.subtitleDub.fontSize')} value={selFontSize} min={12} max={120} step={1}
-            display={`${selFontSize}`} onChange={(v) => setSelFontSize(Math.round(v))} />
-          <label className="flex items-center justify-between gap-2 text-xs text-ed-text-muted">
-            {t('editor.subtitleDub.color')}
-            <input type="color" value={selColor} onChange={(ev) => setSelColor(ev.target.value)}
-              className="w-10 h-7 rounded border border-ed-border bg-transparent cursor-pointer" />
-          </label>
-          <div className="text-[11px] text-ed-text-muted -mb-1">{t('editor.subtitleDub.background')}</div>
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={() => setSelBgEnabled(false)}
-              className={cn(
-                'flex-1 rounded-md px-2 py-1.5 text-xs border transition-colors',
-                !selBgEnabled ? 'border-ed-accent text-ed-text' : 'border-ed-border text-ed-text-muted hover:bg-ed-elevated',
-              )}
-            >
-              {t('editor.subtitleDub.bgNone')}
-            </button>
-            <button
-              type="button"
-              onClick={() => setSelBgEnabled(true)}
-              className={cn(
-                'flex-1 rounded-md px-2 py-1.5 text-xs border transition-colors',
-                selBgEnabled ? 'border-ed-accent text-ed-text' : 'border-ed-border text-ed-text-muted hover:bg-ed-elevated',
-              )}
-            >
-              {t('editor.subtitleDub.bgSolid')}
-            </button>
-          </div>
-          {selBgEnabled && (
-            <>
-              <label className="flex items-center justify-between gap-2 text-xs text-ed-text-muted">
-                {t('editor.subtitleDub.bgColor')}
-                <input type="color" value={selBgColor} onChange={(ev) => setSelBgColor(ev.target.value)}
-                  className="w-10 h-7 rounded border border-ed-border bg-transparent cursor-pointer" />
-              </label>
-              <Slider label={t('editor.subtitleDub.bgOpacity')} value={selBgOpacity} min={0} max={1} step={0.05}
-                display={`${Math.round(selBgOpacity * 100)}%`} onChange={setSelBgOpacity} />
-            </>
-          )}
-        </>
-      )}
 
       {/* 4. Voiceover */}
       <div className={sectionTitle}>{t('editor.subtitleDub.dubSection')}</div>
@@ -761,7 +777,17 @@ export function SubtitleDubPanel({ engine }: Props) {
       </div>
       <div className="flex flex-col gap-1 text-xs text-ed-text-muted">
         {t('editor.subtitleDub.voice')}
-        <Select value={voice} onValueChange={setVoice}>
+        <Select
+          value={voice}
+          onValueChange={(v) => {
+            // Cut off a sample of the old voice, or it keeps playing after the
+            // selection has already moved on.
+            previewAudioRef.current?.pause();
+            previewAudioRef.current = null;
+            setPreviewingVoice(false);
+            setVoice(v);
+          }}
+        >
           <SelectTrigger>
             <SelectValue />
           </SelectTrigger>
@@ -774,6 +800,23 @@ export function SubtitleDubPanel({ engine }: Props) {
           </SelectContent>
         </Select>
       </div>
+      {/* Hearing a voice before dubbing the whole transcript: one API call here
+          instead of discovering the wrong voice after N lines have been spent. */}
+      <button
+        type="button"
+        className={btn}
+        onClick={handlePreviewVoice}
+        disabled={!!busy || previewingVoice}
+      >
+        {previewingVoice ? (
+          <Loader2 className="w-4 h-4 animate-spin" />
+        ) : (
+          <Volume2 className="w-4 h-4" />
+        )}
+        {previewingVoice
+          ? t('editor.subtitleDub.previewing')
+          : t('editor.subtitleDub.previewVoice')}
+      </button>
       <button type="button" className={btn} onClick={handleDub} disabled={!!busy || dubSource.length === 0}>
         {busy === 'dub' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Music className="w-4 h-4" />}
         {t('editor.subtitleDub.generateVoiceover')}
@@ -808,41 +851,6 @@ export function SubtitleDubPanel({ engine }: Props) {
   );
 }
 
-function Slider({
-  label,
-  value,
-  display,
-  min,
-  max,
-  step,
-  onChange,
-}: {
-  label: string;
-  value: number;
-  display: string;
-  min: number;
-  max: number;
-  step: number;
-  onChange: (v: number) => void;
-}) {
-  return (
-    <label className="flex flex-col gap-1 text-xs text-ed-text-muted">
-      <span className="flex justify-between">
-        {label}
-        <span className="font-mono tabular-nums text-ed-text">{display}</span>
-      </span>
-      <input
-        type="range"
-        className="elah-range"
-        min={min}
-        max={max}
-        step={step}
-        value={value}
-        onChange={(e) => onChange(Number(e.target.value))}
-      />
-    </label>
-  );
-}
 
 // Scrollable, directly-editable preview of a subtitle entry list — used for
 // both the original transcript and the translated one so the user can review
@@ -870,18 +878,25 @@ function SubtitleEntryList({
 
   if (entries.length === 0) return null;
   return (
-    <div ref={scrollRef} className="flex flex-col gap-1.5 max-h-56 overflow-y-auto rounded-md border border-ed-border p-2 bg-ed-bg">
+    // shrink-0 is load-bearing: this list sits in the panel's flex column, and
+    // without it flexbox shrinks the list far below max-h-56 (down to a single
+    // clipped row) whenever the buttons above and below fill the column. The
+    // panel itself scrolls, so the list never needs to give up height.
+    <div
+      ref={scrollRef}
+      className="flex flex-col gap-1.5 max-h-56 shrink-0 overflow-y-auto rounded-md border border-ed-border p-2 bg-ed-bg"
+    >
       {entries.map((e) => (
-        <div key={e.id} className="flex gap-2 items-start">
-          <span className="font-mono text-[10px] text-ed-text-muted pt-1.5 shrink-0 whitespace-nowrap">
+        <div key={e.id} className="flex gap-2 items-center">
+          <span className="font-mono text-[10px] text-ed-text-muted shrink-0 whitespace-nowrap">
             {formatTimecode(e.startTime)}
           </span>
-          <textarea
+          <input
+            type="text"
             value={e.text}
             disabled={disabled}
             onChange={(ev) => onChangeText(e.id, ev.target.value)}
-            rows={10}
-            className="flex-1 resize-none bg-transparent text-xs text-ed-text border border-transparent rounded px-1.5 py-1 hover:border-ed-border focus:border-ed-accent focus:outline-none disabled:opacity-60"
+            className="flex-1 min-w-0 bg-transparent text-xs text-ed-text border border-transparent rounded px-1.5 py-1 hover:border-ed-border focus:border-ed-accent focus:outline-none disabled:opacity-60"
           />
         </div>
       ))}

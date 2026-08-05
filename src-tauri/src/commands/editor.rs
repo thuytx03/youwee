@@ -18,6 +18,8 @@ use crate::utils::{
 
 #[path = "editor/attachments.rs"]
 mod attachments;
+#[path = "editor/drafts.rs"]
+mod drafts;
 #[path = "editor/jobs.rs"]
 mod jobs;
 #[path = "editor/metadata.rs"]
@@ -28,6 +30,7 @@ mod preview;
 mod tts;
 
 pub use attachments::*;
+pub use drafts::*;
 pub use jobs::*;
 pub use metadata::*;
 pub use preview::*;
@@ -99,6 +102,42 @@ pub struct EditorPreset {
     pub prompt_template: String,
     pub icon: Option<String>,
     pub created_at: String,
+}
+
+/// Gallery row for a saved editing session — everything needed to render a
+/// draft card without loading (or parsing) the project blob.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EditorDraftSummary {
+    pub id: String,
+    pub name: String,
+    pub schema_version: i32,
+    pub fps: i32,
+    pub stage_width: i32,
+    pub stage_height: i32,
+    pub thumbnail_path: Option<String>,
+    pub duration_frames: i64,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+/// A full draft, including the opaque JSON blobs. `project_json` / `media_json`
+/// / `subtitle_json` are passed through verbatim and parsed on the TS side —
+/// see the editor_drafts DDL for why they are not typed here.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EditorDraft {
+    pub id: String,
+    pub name: String,
+    pub schema_version: i32,
+    pub fps: i32,
+    pub stage_width: i32,
+    pub stage_height: i32,
+    pub project_json: String,
+    pub media_json: String,
+    pub subtitle_json: Option<String>,
+    pub thumbnail_path: Option<String>,
+    pub duration_frames: i64,
+    pub created_at: String,
+    pub updated_at: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

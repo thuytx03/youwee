@@ -3,16 +3,19 @@ import {
   buildSnapPoints,
   MEDIA_DRAG_MIME,
   mediaDragKindMime,
+  secondsToFrames,
   snapFrame,
+  useMediaLibraryStore,
   usePlaybackStore,
   useTracksStore,
+  type Clip,
   type DragMediaPayload,
   type MediaKind,
   type TrackKind,
 } from '@elah/core'
 import { ELEMENT_DRAG_MIME, type DragElementPayload } from './elementDrag'
 import { useTimeline } from './engine-context'
-import { insertElement, insertMediaAsset } from './insertAsset'
+import { insertElement, insertMediaAsset, resolveDropFrame } from './insertAsset'
 
 /** Whether a media asset can be placed on a track of the given kind. */
 function isCompatibleTrackKind(trackKind: TrackKind, mediaKind: MediaKind): boolean {
@@ -135,7 +138,27 @@ export function useTimelineDrop(trackId: string, lane: HTMLElement | null): Time
       setDropState(null)
     }
 
-    const dropMediaAsset = (e: DragEvent, desiredStartFrame: number) => {
+    /**
+     * Clips already on the drop target. A video carrying audio also lands a
+     * synced clip on an audio lane, so those clips count too — otherwise the
+     * pair would anchor to 0 while the audio lane is already occupied.
+     */
+    const clipsAtTarget = (kind: MediaKind | 'element'): Clip[] => {
+      const { tracks, clips } = useTracksStore.getState()
+      const own = clips[trackId] ?? []
+      if (kind !== 'video') return own
+      const audioLanes = tracks.filter((t) => t.kind === 'audio' && !t.locked)
+      return [...own, ...audioLanes.flatMap((t) => clips[t.id] ?? [])]
+    }
+
+    /** Cursor frame adjusted for the empty-lane and append-past-end cases. */
+    const anchorFor = (
+      kind: MediaKind | 'element',
+      cursorFrame: number,
+      durationFrames: number,
+    ) => resolveDropFrame(clipsAtTarget(kind), cursorFrame, durationFrames)
+
+    const dropMediaAsset = (e: DragEvent, cursorFrame: number) => {
       let payload: DragMediaPayload
       try {
         payload = JSON.parse(
@@ -146,13 +169,22 @@ export function useTimelineDrop(trackId: string, lane: HTMLElement | null): Time
       }
 
       if (payload.kind !== 'media-asset' || !payload.assetId) return
+
+      const asset = useMediaLibraryStore.getState().getAsset(payload.assetId)
+      if (!asset) return
+      const fps = engine.getProject().fps
+      const durationFrames = Math.max(
+        1,
+        asset.durationSec > 0 ? secondsToFrames(asset.durationSec, fps) : fps * 5,
+      )
+
       void insertMediaAsset(engine, payload.assetId, {
-        desiredStartFrame,
+        desiredStartFrame: anchorFor(asset.kind, cursorFrame, durationFrames),
         targetTrackId: trackId,
       })
     }
 
-    const dropElement = (e: DragEvent, desiredStartFrame: number) => {
+    const dropElement = (e: DragEvent, cursorFrame: number) => {
       let payload: DragElementPayload
       try {
         payload = JSON.parse(
@@ -162,8 +194,12 @@ export function useTimelineDrop(trackId: string, lane: HTMLElement | null): Time
         return
       }
 
+      // Matches DEFAULT_TEXT_DURATION_SEC in insertAsset — the length the
+      // element will actually occupy, so append-past-end lines up.
+      const elementDuration = Math.max(1, engine.getProject().fps * 3)
+
       insertElement(engine, payload, {
-        desiredStartFrame,
+        desiredStartFrame: anchorFor('element', cursorFrame, elementDuration),
         targetTrackId: trackId,
       })
     }
@@ -179,12 +215,14 @@ export function useTimelineDrop(trackId: string, lane: HTMLElement | null): Time
       if (!track) return
       if (track.locked) return // locked tracks reject new clips
 
-      // clientX must be read before any await in the insertion helper.
-      const desiredStartFrame = startFrameAt(e.clientX)
+      // clientX must be read before any await in the insertion helper. Each
+      // drop path then anchors it via resolveDropFrame, which needs the clip's
+      // real duration and so cannot run until the payload is parsed.
+      const cursorFrame = startFrameAt(e.clientX)
       if (e.dataTransfer!.types.includes(ELEMENT_DRAG_MIME)) {
-        dropElement(e, desiredStartFrame)
+        dropElement(e, cursorFrame)
       } else {
-        dropMediaAsset(e, desiredStartFrame)
+        dropMediaAsset(e, cursorFrame)
       }
     }
 

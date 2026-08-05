@@ -229,7 +229,8 @@
       "selectTextClip": "Выберите текстовый клип для редактирования свойств",
       "textContent": "Текст",
       "fitToFrame": "Вписать в кадр",
-      "fitTimeline": "Вписать таймлайн"
+      "fitTimeline": "Вписать таймлайн",
+      "textColor": "Цвет текста"
     },
     "lib": {
       "media": "Медиа",
@@ -321,7 +322,27 @@
       "bgNone": "Нет",
       "bgSolid": "Сплошной",
       "bgColor": "Цвет фона",
-      "bgOpacity": "Непрозрачность фона"
+      "bgOpacity": "Непрозрачность фона",
+      "fontPresets": "Font template",
+      "bgPresets": "Background template",
+      "fontPreset": {
+        "sans": "Sans",
+        "sansBold": "Sans Bold",
+        "serif": "Serif",
+        "serifBold": "Serif Bold",
+        "mono": "Mono",
+        "impact": "Impact"
+      },
+      "bgPreset": {
+        "none": "None",
+        "black": "Black 60%",
+        "blackSolid": "Black",
+        "white": "White",
+        "yellow": "Yellow",
+        "red": "Red",
+        "blue": "Blue",
+        "green": "Green"
+      }
     }
   },
   "logs": {

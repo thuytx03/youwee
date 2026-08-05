@@ -451,6 +451,12 @@ pub fn run() {
             commands::editor_save_export,
             commands::editor_tts_synthesize,
             commands::editor_transcribe_bytes,
+            // Editor drafts (saved editing sessions)
+            commands::editor_list_drafts,
+            commands::editor_get_draft,
+            commands::editor_save_draft,
+            commands::editor_rename_draft,
+            commands::editor_delete_draft,
             // Whisper commands
             commands::transcribe_video_with_whisper,
             commands::transcribe_url_with_whisper,

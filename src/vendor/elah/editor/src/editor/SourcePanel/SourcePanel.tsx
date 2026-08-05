@@ -88,6 +88,14 @@ export interface SourcePanelProps {
   classNames?: SourcePanelClassNames
   activateOnTap?: boolean
   onAssetActivate?: AssetActivationHandler
+  /**
+   * Replace the "+ Add" button's behavior. Hosts that need the picked files'
+   * real paths (a desktop shell saving a reopenable project, say) can't use the
+   * built-in `<input type=file>`, because a File there carries no path. When
+   * set, this runs instead of opening the file dialog; the handler is expected
+   * to import into the media library itself.
+   */
+  onRequestImport?: () => void | Promise<void>
 }
 
 type Lane = 'media' | 'elements'
@@ -474,6 +482,7 @@ export function SourcePanel({
   classNames,
   activateOnTap,
   onAssetActivate,
+  onRequestImport,
 }: SourcePanelProps) {
   // ── Lane state
   const [lane, setLane] = useState<Lane>(defaultLane)
@@ -660,7 +669,7 @@ export function SourcePanel({
             </button>
             <button
               type="button"
-              onClick={() => fileInputRef.current?.click()}
+              onClick={() => (onRequestImport ? void onRequestImport() : fileInputRef.current?.click())}
               disabled={importing}
               className={ingestBtnClass(false, importing, classNames?.ingestButton)}
               style={ingestBtnStyle(importing)}

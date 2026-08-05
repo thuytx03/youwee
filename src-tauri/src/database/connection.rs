@@ -425,9 +425,41 @@ pub fn init_database(app: &AppHandle) -> Result<(), String> {
     )
     .map_err(|e| format!("Failed to create editor_presets table: {}", e))?;
 
+    // Create editor_drafts table (Video Editor — saved editing sessions).
+    // fps / stage_* / duration_frames are denormalized out of project_json so the
+    // draft gallery can render a grid without parsing every project blob.
+    // The *_json columns stay opaque TEXT on purpose: Clip has ~25 optional
+    // fields, and round-tripping it through a typed serde struct would emit
+    // `null` where the TypeScript renderer checks `=== undefined`.
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS editor_drafts (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            schema_version INTEGER NOT NULL DEFAULT 1,
+            fps INTEGER NOT NULL,
+            stage_width INTEGER NOT NULL,
+            stage_height INTEGER NOT NULL,
+            project_json TEXT NOT NULL,
+            media_json TEXT NOT NULL,
+            subtitle_json TEXT,
+            thumbnail_path TEXT,
+            duration_frames INTEGER NOT NULL DEFAULT 0,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+        )",
+        [],
+    )
+    .map_err(|e| format!("Failed to create editor_drafts table: {}", e))?;
+
     // Create editor indexes
     conn.execute(
         "CREATE INDEX IF NOT EXISTS idx_editor_jobs_created ON editor_jobs(created_at DESC)",
+        [],
+    )
+    .ok();
+
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_editor_drafts_updated ON editor_drafts(updated_at DESC)",
         [],
     )
     .ok();

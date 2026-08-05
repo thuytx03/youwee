@@ -229,7 +229,8 @@
       "selectTextClip": "选择一个文字片段以编辑属性",
       "textContent": "文字",
       "fitToFrame": "适应画面",
-      "fitTimeline": "适应时间轴"
+      "fitTimeline": "适应时间轴",
+      "textColor": "文字颜色"
     },
     "lib": {
       "media": "媒体",
@@ -321,7 +322,27 @@
       "bgNone": "无",
       "bgSolid": "纯色",
       "bgColor": "背景颜色",
-      "bgOpacity": "背景不透明度"
+      "bgOpacity": "背景不透明度",
+      "fontPresets": "Font template",
+      "bgPresets": "Background template",
+      "fontPreset": {
+        "sans": "Sans",
+        "sansBold": "Sans Bold",
+        "serif": "Serif",
+        "serifBold": "Serif Bold",
+        "mono": "Mono",
+        "impact": "Impact"
+      },
+      "bgPreset": {
+        "none": "None",
+        "black": "Black 60%",
+        "blackSolid": "Black",
+        "white": "White",
+        "yellow": "Yellow",
+        "red": "Red",
+        "blue": "Blue",
+        "green": "Green"
+      }
     }
   },
   "logs": {

@@ -229,7 +229,8 @@
       "selectTextClip": "เลือกคลิปข้อความเพื่อแก้ไขคุณสมบัติ",
       "textContent": "ข้อความ",
       "fitToFrame": "ปรับให้พอดีเฟรม",
-      "fitTimeline": "ปรับให้พอดีไทม์ไลน์"
+      "fitTimeline": "ปรับให้พอดีไทม์ไลน์",
+      "textColor": "สีข้อความ"
     },
     "lib": {
       "media": "สื่อ",
@@ -321,7 +322,27 @@
       "bgNone": "ไม่มี",
       "bgSolid": "ทึบ",
       "bgColor": "สีพื้นหลัง",
-      "bgOpacity": "ความทึบของพื้นหลัง"
+      "bgOpacity": "ความทึบของพื้นหลัง",
+      "fontPresets": "Font template",
+      "bgPresets": "Background template",
+      "fontPreset": {
+        "sans": "Sans",
+        "sansBold": "Sans Bold",
+        "serif": "Serif",
+        "serifBold": "Serif Bold",
+        "mono": "Mono",
+        "impact": "Impact"
+      },
+      "bgPreset": {
+        "none": "None",
+        "black": "Black 60%",
+        "blackSolid": "Black",
+        "white": "White",
+        "yellow": "Yellow",
+        "red": "Red",
+        "blue": "Blue",
+        "green": "Green"
+      }
     }
   },
   "logs": {

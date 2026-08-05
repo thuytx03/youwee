@@ -7,6 +7,11 @@ export type { MediaAsset, MediaKind, DragMediaPayload } from './types'
 export { MEDIA_DRAG_MIME, mediaDragKindMime } from './types'
 export { useMediaLibraryStore } from './store'
 export { importFiles, importUrl, importBlob } from './importFiles'
+// Derived-media generators. Normally these run automatically during import, but
+// a host restoring a saved session re-registers assets directly (to preserve
+// their ids) and has to rebuild thumbnails/waveforms itself, since neither is
+// worth persisting — one is megabytes of base64, the other a Float32Array.
+export { makeVideoThumbnailStrip, makeImageThumbnail, computeWaveform } from './importFiles'
 export type {
   ImportFilesOptions,
   ImportFilesResult,

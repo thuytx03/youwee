@@ -229,7 +229,8 @@
       "selectTextClip": "Selecciona un clip de texto para editar propiedades",
       "textContent": "Texto",
       "fitToFrame": "Ajustar al cuadro",
-      "fitTimeline": "Ajustar línea de tiempo"
+      "fitTimeline": "Ajustar línea de tiempo",
+      "textColor": "Color del texto"
     },
     "lib": {
       "media": "Medios",
@@ -321,7 +322,27 @@
       "bgNone": "Ninguno",
       "bgSolid": "Sólido",
       "bgColor": "Color de fondo",
-      "bgOpacity": "Opacidad del fondo"
+      "bgOpacity": "Opacidad del fondo",
+      "fontPresets": "Font template",
+      "bgPresets": "Background template",
+      "fontPreset": {
+        "sans": "Sans",
+        "sansBold": "Sans Bold",
+        "serif": "Serif",
+        "serifBold": "Serif Bold",
+        "mono": "Mono",
+        "impact": "Impact"
+      },
+      "bgPreset": {
+        "none": "None",
+        "black": "Black 60%",
+        "blackSolid": "Black",
+        "white": "White",
+        "yellow": "Yellow",
+        "red": "Red",
+        "blue": "Blue",
+        "green": "Green"
+      }
     }
   },
   "logs": {

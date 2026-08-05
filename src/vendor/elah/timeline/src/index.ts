@@ -18,7 +18,7 @@ export { usePlayback } from './hooks/usePlayback'
 export { useSelection } from './hooks/useSelection'
 export { useTimelineDrop } from './useTimelineDrop'
 export type { TimelineDropState } from './useTimelineDrop'
-export { insertMediaAsset, insertElement } from './insertAsset'
+export { insertMediaAsset, insertElement, resolveDropFrame } from './insertAsset'
 export type {
   InsertAssetOptions,
   InsertAssetResult,
