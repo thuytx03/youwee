@@ -58,6 +58,7 @@ export function useDraftAutosave({
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const draftIdRef = useRef(draftId);
   const nameRef = useRef(name);
+  const scheduleRef = useRef<() => void>(() => {});
   // Payload fingerprint of the last successful save — suppresses no-op writes,
   // e.g. an undo/redo round-trip that lands back on identical state.
   const lastHashRef = useRef<string | null>(null);
@@ -77,7 +78,10 @@ export function useDraftAutosave({
     if (clipCount === 0 && !draftIdRef.current) return;
 
     const subtitle = getSubtitle?.();
-    const payload = JSON.stringify({ project, subtitle });
+    // The name is part of the fingerprint: a rename is a durable change with no
+    // corresponding project mutation, so leaving it out makes the no-op guard
+    // below swallow the save and silently drop the new name.
+    const payload = JSON.stringify({ project, subtitle, name: nameRef.current });
     if (payload === lastHashRef.current) return;
 
     savingRef.current = true;
@@ -136,6 +140,7 @@ export function useDraftAutosave({
         void doSave();
       }, DEBOUNCE_MS);
     };
+    scheduleRef.current = schedule;
 
     engine.on('history:change', schedule);
     return () => {
@@ -146,6 +151,17 @@ export function useDraftAutosave({
       }
     };
   }, [engine, enabled, doSave]);
+
+  // A rename emits no engine event, so schedule its save here. Seeded with the
+  // initial name so the name arriving with a loaded draft — already what's on
+  // disk — doesn't trigger a save on mount.
+  const scheduledNameRef = useRef(name);
+  useEffect(() => {
+    if (name === scheduledNameRef.current) return;
+    scheduledNameRef.current = name;
+    if (!engine || !enabled) return;
+    scheduleRef.current();
+  }, [name, engine, enabled]);
 
   // Flush on unmount so leaving the editor never drops the last edits. Reads
   // through refs because doSave's identity changes with the engine.

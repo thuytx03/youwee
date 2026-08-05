@@ -500,6 +500,9 @@ export function SourcePanel({
 
   // ── Ingestion state
   const [isDragOver, setIsDragOver] = useState(false)
+  // Hover is tracked in state rather than a `hover:` utility: the app consumes
+  // this package's prebuilt dist/styles.css, so new utilities aren't generated.
+  const [dropzoneHover, setDropzoneHover] = useState(false)
   const [importing, setImporting] = useState(false)
   const [toast, setToast] = useState<ImportToast | null>(null)
   const [urlInputOpen, setUrlInputOpen] = useState(false)
@@ -583,6 +586,16 @@ export function SourcePanel({
     if (e.target.files?.length) void handleFiles(e.target.files)
     e.target.value = ''
   }, [handleFiles])
+
+  /**
+   * Opens the host's import dialog when one is supplied, else falls back to the
+   * hidden `<input type=file>`. Shared by "+ Add" and the empty-state drop zone.
+   */
+  const requestImport = useCallback(() => {
+    if (importing) return
+    if (onRequestImport) void onRequestImport()
+    else fileInputRef.current?.click()
+  }, [importing, onRequestImport])
 
   // ── Element drag helper
   const makeDragStart = useCallback(
@@ -669,7 +682,7 @@ export function SourcePanel({
             </button>
             <button
               type="button"
-              onClick={() => (onRequestImport ? void onRequestImport() : fileInputRef.current?.click())}
+              onClick={requestImport}
               disabled={importing}
               className={ingestBtnClass(false, importing, classNames?.ingestButton)}
               style={ingestBtnStyle(importing)}
@@ -827,10 +840,19 @@ export function SourcePanel({
             )}
 
             {assets.length === 0 ? (
-              <div className="flex flex-col items-center justify-center min-h-[120px] p-4 text-center text-ed-text-muted text-[11px] border border-dashed border-ed-border rounded-md">
+              <button
+                type="button"
+                onClick={requestImport}
+                disabled={importing}
+                data-testid="source-empty-dropzone"
+                className="flex flex-col items-center justify-center w-full min-h-[120px] p-4 text-center text-ed-text-muted text-[11px] border border-dashed border-ed-border rounded-md bg-transparent cursor-pointer"
+                style={{ borderColor: dropzoneHover ? 'var(--elah-accent)' : undefined }}
+                onMouseEnter={() => setDropzoneHover(true)}
+                onMouseLeave={() => setDropzoneHover(false)}
+              >
                 <span className="mb-2 text-2xl opacity-50">↓</span>
                 Drop files here<br />or click Add
-              </div>
+              </button>
             ) : visibleAssets.length === 0 ? (
               <div className="text-center text-ed-text-muted text-[11px] pt-8">
                 No matches

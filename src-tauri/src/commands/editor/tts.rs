@@ -15,11 +15,15 @@ pub struct TtsResult {
 }
 
 // Voiceover timing (phương án A+, theo VideoLingo): if the synthesized clip is
-// longer than the subtitle window, speed it up with atempo — but never past
-// MAX_SPEED so the voice doesn't distort. Beyond that we accept slight overflow
-// (the user can nudge the clip on the timeline).
+// longer than the subtitle window, speed it up with atempo so it fits.
+//
+// MAX_SPEED is the ceiling past which the voice starts to sound unnatural. It
+// has to be well above 1.5: translating into a more verbose language (EN → VI
+// routinely runs 30-50% longer) regularly needs ~1.6-1.8x to fit the original
+// cue, and clipping the speed there instead let every long line overflow into
+// the next cue — which is what made the voiceover drift behind the subtitles.
 const MIN_SPEED: f64 = 1.0;
-const MAX_SPEED: f64 = 1.5;
+const MAX_SPEED: f64 = 2.0;
 
 fn tts_dir(app: &AppHandle) -> Result<PathBuf, String> {
     let dir = app
@@ -160,7 +164,7 @@ pub async fn editor_tts_synthesize(
         });
     }
 
-    // atempo accepts 0.5..2.0 per filter; our cap is 1.5 so one pass suffices.
+    // atempo accepts 0.5..2.0 per filter; our cap is exactly 2.0 so one pass suffices.
     let ffmpeg = get_ffmpeg_path(&app).await.ok_or("FFmpeg not found")?;
     let fit_path = dir.join(format!("tts_{}_{}.wav", stamp, idx));
     let fit_str = fit_path.to_string_lossy().to_string();

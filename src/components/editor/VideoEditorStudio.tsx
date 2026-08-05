@@ -185,11 +185,19 @@ function DraftBar({
           onChange={(e) => setValue(e.target.value)}
           onBlur={() => {
             setEditing(false);
-            if (value.trim()) onRename(value.trim());
+            const next = value.trim();
+            // Only a real change commits: renaming to the same string would
+            // otherwise mark the draft dirty for nothing.
+            if (next && next !== name) onRename(next);
           }}
           onKeyDown={(e) => {
             if (e.key === 'Enter') e.currentTarget.blur();
-            if (e.key === 'Escape') setEditing(false);
+            if (e.key === 'Escape') {
+              // Restore the committed name first, so the blur that follows
+              // cannot commit the abandoned draft value.
+              setValue(name ?? '');
+              setEditing(false);
+            }
           }}
           className="px-1.5 py-0.5 text-xs rounded border border-ed-accent bg-ed-bg text-ed-text outline-none"
         />

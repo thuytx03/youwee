@@ -46,10 +46,18 @@ import {
   ORIGINAL_TRACK_NAME,
   SUBTITLE_TRACK_NAMES,
   TRANSLATED_TRACK_NAME,
+  VOICEOVER_TRACK_NAME,
 } from './properties/textPresets';
 
 const FPS = 30;
+/** Duration in ms → frames, floored at 1 (a zero-length clip can't be placed). */
 const msToFrame = (ms: number) => Math.max(1, Math.round((ms / 1000) * FPS));
+/**
+ * Timestamp in ms → frame index. Unlike msToFrame this may return 0: a cue that
+ * starts at 0ms belongs on frame 0, and floring it at 1 would offset the whole
+ * line by a frame.
+ */
+const msToFramePos = (ms: number) => Math.max(0, Math.round((ms / 1000) * FPS));
 
 function formatTimecode(ms: number): string {
   const totalSec = Math.floor(ms / 1000);
@@ -524,10 +532,10 @@ export function SubtitleDubPanel({ engine, initialDraft, onDraftChange }: Props)
       const sorted = [...source].sort((a, b) => a.startTime - b.startTime);
       for (let i = 0; i < sorted.length; i++) {
         const e = sorted[i];
-        const startF = msToFrame(e.startTime);
+        const startF = msToFramePos(e.startTime);
         // Cap the end at the next cue's start (minus 1 frame) to avoid overlap.
-        const nextStartF = i + 1 < sorted.length ? msToFrame(sorted[i + 1].startTime) : Infinity;
-        let endF = msToFrame(e.endTime);
+        const nextStartF = i + 1 < sorted.length ? msToFramePos(sorted[i + 1].startTime) : Infinity;
+        let endF = msToFramePos(e.endTime);
         if (endF >= nextStartF) endF = nextStartF - 1;
         const durationFrames = Math.max(endF - startF, 1);
         if (durationFrames < 1) continue;
@@ -626,44 +634,73 @@ export function SubtitleDubPanel({ engine, initialDraft, onDraftChange }: Props)
     const controller = new AbortController();
     abortRef.current = controller;
     setBusy('dub');
-    // Dedicated voiceover track so the original audio stays untouched. Reuse
-    // it across runs (e.g. after editing subtitles or switching voice)
-    // instead of stacking a new "Voiceover" track each time.
+    // Dedicated voiceover track so the original audio stays untouched. Reuse it
+    // across runs (e.g. after editing subtitles or switching voice) instead of
+    // stacking a new "Voiceover" track each time.
+    //
+    // The ref alone is not enough to find it: it's only ever set by this
+    // function, so a remount or a project reopened from a draft starts at null
+    // while the track is still sitting on the timeline — which produced two
+    // "Voiceover" tracks playing over each other. Fall back to the track's
+    // stable name, exactly as isSubtitleTrack does for the caption tracks.
     let trackId = dubTrackId.current;
+    if (!trackId || !engine.getProject().tracks.some((tr) => tr.id === trackId)) {
+      trackId =
+        engine
+          .getProject()
+          .tracks.find((tr) => tr.kind === 'audio' && tr.name === VOICEOVER_TRACK_NAME)?.id ?? null;
+    }
     if (trackId) {
       for (const c of engine.getClipsOnTrack(trackId)) {
         if (c.type === 'audio') engine.removeClip(c.id, trackId);
       }
+      dubTrackId.current = trackId;
     } else {
-      const dubTrack = engine.addTrack('audio', { name: 'Voiceover' });
+      const dubTrack = engine.addTrack('audio', { name: VOICEOVER_TRACK_NAME });
       trackId = dubTrack.id;
       dubTrackId.current = trackId;
     }
     const sorted = [...dubSource].sort((a, b) => a.startTime - b.startTime);
-    // Track the next free frame so back-to-back clips never overlap (A+: if a
-    // clip runs long, the next one is pushed later instead of colliding).
-    let nextFreeFrame = 0;
     try {
       for (let i = 0; i < sorted.length; i++) {
         if (controller.signal.aborted) break;
         const e = sorted[i];
         if (!e.text.trim()) continue;
         setProgress(t('editor.subtitleDub.dubbing', { done: i + 1, total: sorted.length }));
+        // Speak-fit window = this cue plus the silence before the next one.
+        // Sizing to the cue alone (endTime - startTime) throws away the pause
+        // that follows it, forcing needless speed-up on lines that had room to
+        // breathe; the ceiling is where the next line must start talking.
+        const nextStart = i + 1 < sorted.length ? sorted[i + 1].startTime : e.endTime;
+        const windowMs = Math.max(nextStart - e.startTime, e.endTime - e.startTime);
         const res = await ttsSynthesize({
           provider: ttsProvider,
           voice,
           text: e.text,
           apiKey: ttsApiKey,
           model: ttsModel,
-          windowMs: e.endTime - e.startTime,
+          windowMs,
           index: i,
         });
         const src = await toAssetUrl(res.path);
-        const startF = Math.max(msToFrame(e.startTime), nextFreeFrame);
-        const durF = Math.max(msToFrame(res.duration_ms), 1);
+        // Every line starts at its own cue time — never nudged later to dodge
+        // the previous clip. Chaining starts off "the next free frame" made each
+        // overlong line push all the following ones back, and that lateness
+        // accumulated, so by mid-video the voice was a whole cue behind the
+        // subtitles. A line that still overruns is trimmed below instead, which
+        // costs a clipped tail on that one line and keeps everything after it
+        // in sync.
+        const startF = msToFramePos(e.startTime);
+        let durF = msToFrame(res.duration_ms);
+        // Elah rejects overlapping clips on a track, so cap the clip at the next
+        // cue's start. windowMs above already asked TTS to fit inside this span;
+        // this only bites when even MAX_SPEED wasn't enough.
+        if (i + 1 < sorted.length) {
+          const nextStartF = msToFramePos(sorted[i + 1].startTime);
+          if (startF + durF > nextStartF) durF = Math.max(nextStartF - startF, 1);
+        }
         try {
           engine.addClip({ type: 'audio', trackId, startFrame: startF, durationFrames: durF, src });
-          nextFreeFrame = startF + durF;
         } catch {
           // Skip a clip that still can't be placed rather than aborting the run.
         }

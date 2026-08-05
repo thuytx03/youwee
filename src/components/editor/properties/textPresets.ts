@@ -16,6 +16,14 @@ export const ORIGINAL_TRACK_NAME = 'Subtitles (original)'
 export const TRANSLATED_TRACK_NAME = 'Subtitles (translated)'
 export const SUBTITLE_TRACK_NAMES = [ORIGINAL_TRACK_NAME, TRANSLATED_TRACK_NAME]
 
+/**
+ * Name of the generated voiceover track. Stable identifier for the same reason
+ * as the subtitle names above: re-running the dub has to find the track from a
+ * previous session (where no in-memory ref survives) so it replaces that
+ * voiceover instead of stacking a second one beside it.
+ */
+export const VOICEOVER_TRACK_NAME = 'Voiceover'
+
 export interface FontPreset {
   id: string
   fontFamily: string
