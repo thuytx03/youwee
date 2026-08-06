@@ -18,6 +18,8 @@ use crate::utils::{
 
 #[path = "editor/attachments.rs"]
 mod attachments;
+#[path = "editor/cleanup.rs"]
+mod cleanup;
 #[path = "editor/drafts.rs"]
 mod drafts;
 #[path = "editor/jobs.rs"]
@@ -30,6 +32,7 @@ mod preview;
 mod tts;
 
 pub use attachments::*;
+pub use cleanup::*;
 pub use drafts::*;
 pub use jobs::*;
 pub use metadata::*;

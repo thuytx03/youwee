@@ -293,7 +293,7 @@
       "dubbing": "Narrando {{done}}/{{total}}…",
       "dubDone": "Narração adicionada",
       "dubFailed": "Falha na narração",
-      "dubHint": "Cada linha é narrada no tempo da legenda. Linhas longas podem sobrepor — arraste para ajustar. O áudio original é mantido.",
+      "dubHint": "Cada linha é narrada e colocada no tempo da sua legenda. Linhas longas demais são aceleradas e depois cortadas para que a próxima permaneça sincronizada. O áudio original é mantido.",
       "cancel": "Cancelar",
       "cancelled": "Cancelado",
       "noVideo": "Nenhum vídeo no editor",
@@ -342,7 +342,9 @@
         "red": "Red",
         "blue": "Blue",
         "green": "Green"
-      }
+      },
+      "proofreadHintPlaceholder": "ex.: os nomes são vietnamitas; o tema é futebol",
+      "translateHintPlaceholder": "ex.: não traduzir nomes de marcas, tratar o espectador por você"
     }
   },
   "logs": {

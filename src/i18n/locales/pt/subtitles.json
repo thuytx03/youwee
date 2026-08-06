@@ -347,7 +347,8 @@
     "progress": "{{current}} - Falta De: {{total}}",
     "success": "Seu processo foi feito as mágicas tradutoras base",
     "error": "A engrenagem do cérebro eletrônico textualmente em edições baseadas quebra falhas em rede para acesso traduzidas virtuais...",
-    "keepOriginal": "Mantenha nativa secundária na base em textuais edições! Visualizações a editor comparativo originária do lado B de foco lado a editores textuais!"
+    "keepOriginal": "Mantenha nativa secundária na base em textuais edições! Visualizações a editor comparativo originária do lado B de foco lado a editores textuais!",
+    "hintPlaceholder": "ex.: não traduzir nomes de marcas, tratar o espectador por você"
   },
   "grammar": {
     "title": "O Seu Professor de Gramáticas Digitais A Base da Inteligências!",
@@ -361,7 +362,8 @@
     "style": "Formatura Nativa Textuais",
     "formal": "Engravatados textualmente.",
     "casual": "Camiseta a Texto...",
-    "original": "Original e de como estava nativo base visual"
+    "original": "Original e de como estava nativo base visual",
+    "hintPlaceholder": "ex.: é um vídeo de culinária — manter os nomes dos ingredientes como falados"
   },
   "formats": {
     "srt": "Sub Rip textualmente (.SRT visual editor local e formatos de texto arquivos de vídeo e de saída edições do textualmente!)",

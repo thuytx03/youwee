@@ -347,7 +347,8 @@
     "progress": "Đang dịch: {{current}}/{{total}}",
     "success": "Dịch hoàn tất",
     "error": "Dịch thất bại",
-    "keepOriginal": "Giữ nguyên bản gốc làm phụ"
+    "keepOriginal": "Giữ nguyên bản gốc làm phụ",
+    "hintPlaceholder": "VD: giữ nguyên tên thương hiệu, dịch \"you\" thành \"bạn\""
   },
   "grammar": {
     "title": "Sửa ngữ pháp & phong cách AI",
@@ -361,7 +362,8 @@
     "style": "Phong cách",
     "formal": "Trang trọng",
     "casual": "Thân mật",
-    "original": "Giữ phong cách gốc"
+    "original": "Giữ phong cách gốc",
+    "hintPlaceholder": "VD: đây là video nấu ăn — giữ nguyên tên nguyên liệu như người nói"
   },
   "formats": {
     "srt": "SubRip (SRT)",

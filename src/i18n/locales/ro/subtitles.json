@@ -347,7 +347,8 @@
     "progress": "Traducere: {{current}}/{{total}}",
     "success": "Traducerea completă",
     "error": "Traducerea a eșuat",
-    "keepOriginal": "Păstrați originalul ca secundar"
+    "keepOriginal": "Păstrați originalul ca secundar",
+    "hintPlaceholder": "ex.: nu traduce numele de brand, adresează-te la persoana a doua singular"
   },
   "grammar": {
     "title": "AI Corectare de gramatică și stil",
@@ -361,7 +362,8 @@
     "style": "Stil",
     "formal": "Formal",
     "casual": "Casual",
-    "original": "Păstrați stilul original"
+    "original": "Păstrați stilul original",
+    "hintPlaceholder": "ex.: e un video de gătit — păstrează numele ingredientelor așa cum sunt rostite"
   },
   "formats": {
     "srt": "SubRip (SRT)",

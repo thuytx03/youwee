@@ -2,6 +2,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { Loader2, Sparkles, X } from 'lucide-react';
 import { useCallback, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { AIPromptHintField } from '@/components/shared/AIPromptHintField';
 import { useSubtitle } from '@/contexts/SubtitleContext';
 import { localizeUnknownError } from '@/lib/backend-error';
 import { cn } from '@/lib/utils';
@@ -20,6 +21,10 @@ export function GrammarFixDialog({ open, onClose }: GrammarFixDialogProps) {
   const activeRunIdRef = useRef(0);
 
   const [style, setStyle] = useState<StyleOption>('original');
+  // Free-form guidance appended to the built-in prompt, for material the
+  // generic "fix grammar" instruction gets wrong (jargon, names, dialects).
+  // Session-only: it lives and dies with the dialog's mount.
+  const [extraInstructions, setExtraInstructions] = useState('');
   const [isFixing, setIsFixing] = useState(false);
   const [progress, setProgress] = useState({ current: 0, total: 0 });
   const [error, setError] = useState<string | null>(null);
@@ -61,6 +66,13 @@ export function GrammarFixDialog({ open, onClose }: GrammarFixDialogProps) {
             ? 'Use casual, conversational language.'
             : 'Maintain the original style.';
 
+      // The user's guidance goes in a delimited block placed BEFORE the output
+      // format rules, so the rules that keep the response parseable (one item
+      // per input, same count, ---SEPARATOR--- only) always come last.
+      const userBlock = extraInstructions.trim()
+        ? `Additional instructions from the user (follow them as long as they do not conflict with the output format rules below):\n<USER_INSTRUCTIONS>\n${extraInstructions.trim()}\n</USER_INSTRUCTIONS>\n`
+        : '';
+
       for (let i = 0; i < entriesToFix.length; i += BATCH_SIZE) {
         if (isCancelled()) {
           throw new Error(GRAMMAR_CANCELLED_ERROR);
@@ -68,7 +80,7 @@ export function GrammarFixDialog({ open, onClose }: GrammarFixDialogProps) {
         const batch = entriesToFix.slice(i, i + BATCH_SIZE);
         const textsToFix = batch.map((e) => e.text).join('\n---SEPARATOR---\n');
 
-        const prompt = `Fix the grammar, punctuation, and spelling in the following subtitle texts. ${styleInstruction} Each subtitle is separated by "---SEPARATOR---". Return ONLY the corrected texts, separated by "---SEPARATOR---". Keep the same number of texts. Preserve line breaks within each subtitle. Do NOT add explanations.\n\n${textsToFix}`;
+        const prompt = `Fix the grammar, punctuation, and spelling in the following subtitle texts. ${styleInstruction}\n${userBlock}Each subtitle is separated by "---SEPARATOR---". Return ONLY the corrected texts, separated by "---SEPARATOR---". Keep the same number of texts. Preserve line breaks within each subtitle. Do NOT add explanations.\n\n${textsToFix}`;
 
         const response = await invoke<string>('generate_ai_response', {
           prompt,
@@ -108,7 +120,7 @@ export function GrammarFixDialog({ open, onClose }: GrammarFixDialogProps) {
         setIsFixing(false);
       }
     }
-  }, [subtitle, style, handleClose]);
+  }, [subtitle, style, extraInstructions, handleClose]);
 
   if (!open) return null;
 
@@ -155,6 +167,14 @@ export function GrammarFixDialog({ open, onClose }: GrammarFixDialogProps) {
               ))}
             </div>
           </div>
+
+          {/* Extra AI instructions */}
+          <AIPromptHintField
+            value={extraInstructions}
+            onChange={setExtraInstructions}
+            disabled={isFixing}
+            placeholder={t('grammar.hintPlaceholder')}
+          />
 
           {/* Scope */}
           <div className="text-sm text-muted-foreground">

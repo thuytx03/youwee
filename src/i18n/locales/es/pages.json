@@ -293,7 +293,7 @@
       "dubbing": "Generando voz {{done}}/{{total}}…",
       "dubDone": "Voz añadida",
       "dubFailed": "Error de voz",
-      "dubHint": "Cada línea se locuta en su tiempo de subtítulo. Las líneas largas pueden solaparse — arrastra para ajustar. Se mantiene el audio original.",
+      "dubHint": "Cada línea se locuta y se coloca en su tiempo de subtítulo. Las líneas demasiado largas se aceleran y luego se recortan para que la siguiente siga sincronizada. Se conserva el audio original.",
       "cancel": "Cancelar",
       "cancelled": "Cancelado",
       "noVideo": "No hay vídeo en el editor",
@@ -342,7 +342,9 @@
         "red": "Red",
         "blue": "Blue",
         "green": "Green"
-      }
+      },
+      "proofreadHintPlaceholder": "p. ej. los nombres son vietnamitas; el tema es el fútbol",
+      "translateHintPlaceholder": "p. ej. no traducir nombres de marcas, tratar al espectador de tú"
     }
   },
   "logs": {

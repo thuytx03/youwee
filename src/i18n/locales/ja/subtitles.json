@@ -347,7 +347,8 @@
     "progress": "翻訳中: {{current}}/{{total}}",
     "success": "翻訳が完了しました",
     "error": "翻訳に失敗しました",
-    "keepOriginal": "元のテキストを第2言語として保持する"
+    "keepOriginal": "元のテキストを第2言語として保持する",
+    "hintPlaceholder": "例: ブランド名は翻訳しない、丁寧語で統一する"
   },
   "grammar": {
     "title": "AI 文法＆スタイル修正",
@@ -361,7 +362,8 @@
     "style": "スタイル",
     "formal": "フォーマル (敬体)",
     "casual": "カジュアル (常体)",
-    "original": "元のスタイルを維持"
+    "original": "元のスタイルを維持",
+    "hintPlaceholder": "例: 料理動画なので、食材名は話されたとおりに保つ"
   },
   "formats": {
     "srt": "SubRip (SRT)",

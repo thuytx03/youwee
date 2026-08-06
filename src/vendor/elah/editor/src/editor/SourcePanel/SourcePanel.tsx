@@ -96,6 +96,13 @@ export interface SourcePanelProps {
    * to import into the media library itself.
    */
   onRequestImport?: () => void | Promise<void>
+  /**
+   * Replace the per-asset delete behavior. `removeAsset` only drops the in-memory
+   * entry, so a host that owns files on disk (or object URLs) needs this hook to
+   * release them at the same time. When set, it runs instead of `removeAsset` and
+   * is responsible for removing the asset from the library itself.
+   */
+  onRequestDeleteAsset?: (assetId: string) => void | Promise<void>
 }
 
 type Lane = 'media' | 'elements'
@@ -483,6 +490,7 @@ export function SourcePanel({
   activateOnTap,
   onAssetActivate,
   onRequestImport,
+  onRequestDeleteAsset,
 }: SourcePanelProps) {
   // ── Lane state
   const [lane, setLane] = useState<Lane>(defaultLane)
@@ -521,7 +529,13 @@ export function SourcePanel({
     return () => globalThis.clearTimeout(id)
   }, [toast])
 
-  const handleDeleteAsset = useCallback((id: string) => removeAsset(id), [removeAsset])
+  const handleDeleteAsset = useCallback(
+    (id: string) => {
+      if (onRequestDeleteAsset) void onRequestDeleteAsset(id)
+      else removeAsset(id)
+    },
+    [removeAsset, onRequestDeleteAsset],
+  )
   const handleAssetActivate = useCallback(
     (asset: MediaAsset) => {
       void activateAsset({ kind: 'media-asset', asset })

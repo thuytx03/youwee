@@ -106,5 +106,11 @@
     "WHISPER_UNSUPPORTED_FORMAT": "Formato de áudio não suportado para Whisper.",
     "ARIA2_NOT_FOUND": "aria2c não encontrado. Instale o aria2 e verifique se aria2c está disponível no PATH.",
     "YT_SKIPPED_FILTER": "Skipped by yt-dlp match filter."
+  },
+  "aiHint": {
+    "toggle": "Instruções adicionais para a IA",
+    "active": "ativo",
+    "placeholder": "ex.: manter nomes de produtos em inglês, usar tom formal…",
+    "help": "Adicionado ao prompt integrado. Deixe vazio para usar o comportamento padrão."
   }
 }

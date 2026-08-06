@@ -29,6 +29,7 @@ import {
   relinkDraftMedia,
   relocateAsset,
   remapProjectSrcs,
+  removeAssetAndCleanup,
   type EditorDraft,
   type MissingMedia,
   type SubtitleDubDraft,
@@ -38,6 +39,7 @@ import { useDraftAutosave, type SaveState } from './useDraftAutosave';
 import { EditorToolbar } from './EditorToolbar';
 import { ClipProperties } from './properties/ClipProperties';
 import { SubtitleDubPanel } from './SubtitleDubPanel';
+import { TextRegionOverlay } from './TextRegionOverlay';
 import { TimelineControls } from './TimelineControls';
 import { useElahDialogI18n } from './useElahDialogI18n';
 
@@ -469,6 +471,7 @@ export function VideoEditorStudio({ draft = null, onExit }: VideoEditorStudioPro
                 activateOnTap
                 style={{ flex: 1, minHeight: 0 }}
                 onRequestImport={handleImportMedia}
+                onRequestDeleteAsset={removeAssetAndCleanup}
               />
             </div>
             {/* Keep mounted (hidden via CSS) when switching tabs — unmounting
@@ -485,6 +488,14 @@ export function VideoEditorStudio({ draft = null, onExit }: VideoEditorStudioPro
             <AspectControl />
             <div className="flex-1 min-h-0 relative bg-black py-6">
               <Preview demuxerFactory={demuxerFactory} style={{ width: '100%', height: '100%' }} />
+              {/* Text-removal region picker. Inset matches this wrapper's py-6 so
+                  the overlay's box equals the canvas box — the stage mapping
+                  measures its own rect and must see the one the renderer draws
+                  into. z-10 puts it above the vendored overlays (z1..z4), and it
+                  only takes pointer events while region-select mode is on. */}
+              <div className="absolute inset-x-0 top-6 bottom-6 z-10 pointer-events-none">
+                <TextRegionOverlay />
+              </div>
             </div>
             <TransportBar fps={fps} />
           </div>

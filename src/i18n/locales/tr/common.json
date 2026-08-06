@@ -105,5 +105,11 @@
     "WHISPER_NO_API_KEY": "Whisper API anahtarı yapılandırılmamış.",
     "WHISPER_UNSUPPORTED_FORMAT": "Whisper için desteklenmeyen ses formatı.",
     "YT_SKIPPED_FILTER": "yt-dlp eşleşme filtresi tarafından atlandı."
+  },
+  "aiHint": {
+    "toggle": "Yapay zeka için ek talimatlar",
+    "active": "açık",
+    "placeholder": "ör. ürün adlarını İngilizce bırak, resmi bir üslup kullan…",
+    "help": "Yerleşik isteme eklenir. Varsayılan davranış için boş bırakın."
   }
 }

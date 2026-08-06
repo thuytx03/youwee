@@ -5,6 +5,7 @@ import { readTextFile } from '@tauri-apps/plugin-fs';
 import { Captions, Languages, Loader2, Mic, Music, SpellCheck, Volume2, Wand2 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { AIPromptHintField } from '@/components/shared/AIPromptHintField';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,22 +25,22 @@ import {
 } from '@/components/ui/select';
 import { useToast } from '@/components/ui/toast';
 import { useAI } from '@/contexts/AIContext';
-import { ttsSynthesize, transcribeVideoBytes } from '@/contexts/editor/editor-client';
+import { transcribeVideoBytes, ttsSynthesize } from '@/contexts/editor/editor-client';
 import { toAssetUrl } from '@/lib/asset-access';
+import type { SubtitleDubDraft } from '@/lib/editor-drafts';
 import { parseSubtitles, type SubtitleEntry } from '@/lib/subtitle-parser';
 import {
   proofreadSubtitleTexts,
   TRANSLATE_CANCELLED,
   translateSubtitleTexts,
 } from '@/lib/subtitle-translate';
-import { LANGUAGE_OPTIONS } from '@/lib/types';
 import {
   DEFAULT_TTS_MODEL,
   resolveTargetLanguage,
   TTS_VOICES,
   type TtsProvider,
 } from '@/lib/tts-voices';
-import type { SubtitleDubDraft } from '@/lib/editor-drafts';
+import { LANGUAGE_OPTIONS } from '@/lib/types';
 import {
   DEFAULT_SUBTITLE_STYLE,
   fitCaptionToVideo,
@@ -100,6 +101,12 @@ export function SubtitleDubPanel({ engine, initialDraft, onDraftChange }: Props)
   const [busy, setBusy] = useState<string>(''); // '', 'transcribe', 'proofread', 'translate', 'dub'
   const [progress, setProgress] = useState('');
   const abortRef = useRef<AbortController | null>(null);
+
+  // Free-form extra prompt instructions for the two AI passes. Session-only
+  // (deliberately not part of the autosaved draft) — they steer wording for
+  // domain-specific material without replacing the built-in prompt rules.
+  const [proofreadHint, setProofreadHint] = useState('');
+  const [translateHint, setTranslateHint] = useState('');
 
   // Original and translated subtitles live on separate tracks so adding one
   // never wipes out the other — the user can have both on the timeline at once.
@@ -272,9 +279,7 @@ export function SubtitleDubPanel({ engine, initialDraft, onDraftChange }: Props)
   const hasTranslatedOnTimeline = !!translatedTrackId.current;
 
   const ttsApiKey =
-    ai.config.provider === 'openai'
-      ? ai.config.api_key ?? ''
-      : ai.config.api_key ?? '';
+    ai.config.provider === 'openai' ? (ai.config.api_key ?? '') : (ai.config.api_key ?? '');
   const whisperKey =
     ai.config.whisper_api_key || (ai.config.provider === 'openai' ? ai.config.api_key : '') || '';
 
@@ -295,7 +300,10 @@ export function SubtitleDubPanel({ engine, initialDraft, onDraftChange }: Props)
       .map((id) => assets[id])
       .find((a) => a?.kind === 'video');
     if (!videoAsset) {
-      toast.error({ title: t('editor.subtitleDub.noVideo'), message: t('editor.subtitleDub.noVideoMsg') });
+      toast.error({
+        title: t('editor.subtitleDub.noVideo'),
+        message: t('editor.subtitleDub.noVideoMsg'),
+      });
       return;
     }
     setBusy('transcribe');
@@ -313,7 +321,9 @@ export function SubtitleDubPanel({ engine, initialDraft, onDraftChange }: Props)
       const parsed = parseSubtitles(srt);
       setEntries(parsed.entries);
       setTranslatedEntries(null);
-      toast.success({ title: t('editor.subtitleDub.subtitlesReady', { count: parsed.entries.length }) });
+      toast.success({
+        title: t('editor.subtitleDub.subtitlesReady', { count: parsed.entries.length }),
+      });
     } catch (e) {
       toast.error({ title: t('editor.subtitleDub.transcribeFailed'), message: String(e) });
     } finally {
@@ -333,7 +343,9 @@ export function SubtitleDubPanel({ engine, initialDraft, onDraftChange }: Props)
       const parsed = parseSubtitles(content);
       setEntries(parsed.entries);
       setTranslatedEntries(null);
-      toast.success({ title: t('editor.subtitleDub.subtitlesReady', { count: parsed.entries.length }) });
+      toast.success({
+        title: t('editor.subtitleDub.subtitlesReady', { count: parsed.entries.length }),
+      });
     } catch (e) {
       toast.error({ title: t('editor.subtitleDub.uploadFailed'), message: String(e) });
     }
@@ -346,7 +358,10 @@ export function SubtitleDubPanel({ engine, initialDraft, onDraftChange }: Props)
   const handleProofread = async () => {
     if (entries.length === 0) return;
     if (!ai.config.enabled || !ai.config.api_key) {
-      toast.error({ title: t('editor.subtitleDub.needAI'), message: t('editor.subtitleDub.needAIMsg') });
+      toast.error({
+        title: t('editor.subtitleDub.needAI'),
+        message: t('editor.subtitleDub.needAIMsg'),
+      });
       return;
     }
     const controller = new AbortController();
@@ -357,6 +372,7 @@ export function SubtitleDubPanel({ engine, initialDraft, onDraftChange }: Props)
         entries.map((e) => e.text),
         {
           signal: controller.signal,
+          extraInstructions: proofreadHint,
           onProgress: (done, total) =>
             setProgress(t('editor.subtitleDub.proofreading', { done, total })),
         },
@@ -364,7 +380,8 @@ export function SubtitleDubPanel({ engine, initialDraft, onDraftChange }: Props)
       setEntries((prev) => prev.map((e, i) => ({ ...e, text: corrected[i] ?? e.text })));
       toast.success({ title: t('editor.subtitleDub.proofreadDone') });
     } catch (e) {
-      if (String(e).includes(TRANSLATE_CANCELLED)) toast.info({ title: t('editor.subtitleDub.cancelled') });
+      if (String(e).includes(TRANSLATE_CANCELLED))
+        toast.info({ title: t('editor.subtitleDub.cancelled') });
       else toast.error({ title: t('editor.subtitleDub.proofreadFailed'), message: String(e) });
     } finally {
       setBusy('');
@@ -377,7 +394,10 @@ export function SubtitleDubPanel({ engine, initialDraft, onDraftChange }: Props)
   const handleTranslate = async () => {
     if (entries.length === 0) return;
     if (!ai.config.enabled || !ai.config.api_key) {
-      toast.error({ title: t('editor.subtitleDub.needAI'), message: t('editor.subtitleDub.needAIMsg') });
+      toast.error({
+        title: t('editor.subtitleDub.needAI'),
+        message: t('editor.subtitleDub.needAIMsg'),
+      });
       return;
     }
     const controller = new AbortController();
@@ -389,6 +409,7 @@ export function SubtitleDubPanel({ engine, initialDraft, onDraftChange }: Props)
         targetName,
         {
           signal: controller.signal,
+          extraInstructions: translateHint,
           onProgress: (done, total) =>
             setProgress(t('editor.subtitleDub.translating', { done, total })),
         },
@@ -396,7 +417,8 @@ export function SubtitleDubPanel({ engine, initialDraft, onDraftChange }: Props)
       setTranslatedEntries(entries.map((e, i) => ({ ...e, text: translated[i] ?? e.text })));
       toast.success({ title: t('editor.subtitleDub.translateDone') });
     } catch (e) {
-      if (String(e).includes(TRANSLATE_CANCELLED)) toast.info({ title: t('editor.subtitleDub.cancelled') });
+      if (String(e).includes(TRANSLATE_CANCELLED))
+        toast.info({ title: t('editor.subtitleDub.cancelled') });
       else toast.error({ title: t('editor.subtitleDub.translateFailed'), message: String(e) });
     } finally {
       setBusy('');
@@ -410,7 +432,9 @@ export function SubtitleDubPanel({ engine, initialDraft, onDraftChange }: Props)
   const updateEntryText = (id: string, text: string) =>
     setEntries((prev) => prev.map((e) => (e.id === id ? { ...e, text } : e)));
   const updateTranslatedEntryText = (id: string, text: string) =>
-    setTranslatedEntries((prev) => (prev ? prev.map((e) => (e.id === id ? { ...e, text } : e)) : prev));
+    setTranslatedEntries((prev) =>
+      prev ? prev.map((e) => (e.id === id ? { ...e, text } : e)) : prev,
+    );
 
   /**
    * Intrinsic size of the video the captions belong to. Read from the asset
@@ -595,7 +619,10 @@ export function SubtitleDubPanel({ engine, initialDraft, onDraftChange }: Props)
    */
   const handlePreviewVoice = async () => {
     if (!ttsApiKey) {
-      toast.error({ title: t('editor.subtitleDub.needAI'), message: t('editor.subtitleDub.needAIMsg') });
+      toast.error({
+        title: t('editor.subtitleDub.needAI'),
+        message: t('editor.subtitleDub.needAIMsg'),
+      });
       return;
     }
     // Stop a sample that's already playing so clicking around doesn't overlap.
@@ -605,8 +632,10 @@ export function SubtitleDubPanel({ engine, initialDraft, onDraftChange }: Props)
     setPreviewingVoice(true);
     try {
       const sample =
-        dubSource.find((e) => e.text.trim())?.text.trim().slice(0, 180) ||
-        t('editor.subtitleDub.previewSampleText');
+        dubSource
+          .find((e) => e.text.trim())
+          ?.text.trim()
+          .slice(0, 180) || t('editor.subtitleDub.previewSampleText');
       const res = await ttsSynthesize({
         provider: ttsProvider,
         voice,
@@ -628,7 +657,10 @@ export function SubtitleDubPanel({ engine, initialDraft, onDraftChange }: Props)
   const handleDub = async () => {
     if (!engine || dubSource.length === 0) return;
     if (!ttsApiKey) {
-      toast.error({ title: t('editor.subtitleDub.needAI'), message: t('editor.subtitleDub.needAIMsg') });
+      toast.error({
+        title: t('editor.subtitleDub.needAI'),
+        message: t('editor.subtitleDub.needAIMsg'),
+      });
       return;
     }
     const controller = new AbortController();
@@ -725,7 +757,10 @@ export function SubtitleDubPanel({ engine, initialDraft, onDraftChange }: Props)
   const sectionTitle = 'text-[11px] font-semibold text-ed-text-muted uppercase tracking-wide mt-1';
 
   return (
-    <div className="flex flex-col gap-3 p-3 overflow-y-auto text-ed-text" style={{ height: '100%' }}>
+    <div
+      className="flex flex-col gap-3 p-3 overflow-y-auto text-ed-text"
+      style={{ height: '100%' }}
+    >
       <div className="text-sm font-semibold flex items-center gap-2">
         <Captions className="w-4 h-4" /> {t('editor.subtitleDub.title')}
       </div>
@@ -733,7 +768,11 @@ export function SubtitleDubPanel({ engine, initialDraft, onDraftChange }: Props)
       {/* 1. Source subtitles */}
       <div className={sectionTitle}>{t('editor.subtitleDub.sourceSection')}</div>
       <button type="button" className={btn} onClick={handleTranscribe} disabled={!!busy}>
-        {busy === 'transcribe' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mic className="w-4 h-4" />}
+        {busy === 'transcribe' ? (
+          <Loader2 className="w-4 h-4 animate-spin" />
+        ) : (
+          <Mic className="w-4 h-4" />
+        )}
         {t('editor.subtitleDub.fromVideo')}
       </button>
       <button type="button" className={btn} onClick={handleUpload} disabled={!!busy}>
@@ -745,11 +784,30 @@ export function SubtitleDubPanel({ engine, initialDraft, onDraftChange }: Props)
         </div>
       )}
       <SubtitleEntryList entries={entries} onChangeText={updateEntryText} disabled={!!busy} />
-      <button type="button" className={btn} onClick={handleProofread} disabled={!!busy || entries.length === 0}>
-        {busy === 'proofread' ? <Loader2 className="w-4 h-4 animate-spin" /> : <SpellCheck className="w-4 h-4" />}
+      <AIPromptHintField
+        value={proofreadHint}
+        onChange={setProofreadHint}
+        disabled={!!busy}
+        placeholder={t('editor.subtitleDub.proofreadHintPlaceholder')}
+        className="shrink-0"
+        textareaClassName="border-ed-border bg-ed-elevated text-ed-text"
+      />
+      <button
+        type="button"
+        className={btn}
+        onClick={handleProofread}
+        disabled={!!busy || entries.length === 0}
+      >
+        {busy === 'proofread' ? (
+          <Loader2 className="w-4 h-4 animate-spin" />
+        ) : (
+          <SpellCheck className="w-4 h-4" />
+        )}
         {t('editor.subtitleDub.proofread')}
       </button>
-      <div className="text-[11px] text-ed-text-muted -mt-1">{t('editor.subtitleDub.proofreadHint')}</div>
+      <div className="text-[11px] text-ed-text-muted -mt-1">
+        {t('editor.subtitleDub.proofreadHint')}
+      </div>
       <button
         type="button"
         className={btn}
@@ -779,12 +837,33 @@ export function SubtitleDubPanel({ engine, initialDraft, onDraftChange }: Props)
           </SelectContent>
         </Select>
       </div>
-      <button type="button" className={btn} onClick={handleTranslate} disabled={!!busy || entries.length === 0}>
-        {busy === 'translate' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Languages className="w-4 h-4" />}
+      <AIPromptHintField
+        value={translateHint}
+        onChange={setTranslateHint}
+        disabled={!!busy}
+        placeholder={t('editor.subtitleDub.translateHintPlaceholder')}
+        className="shrink-0"
+        textareaClassName="border-ed-border bg-ed-elevated text-ed-text"
+      />
+      <button
+        type="button"
+        className={btn}
+        onClick={handleTranslate}
+        disabled={!!busy || entries.length === 0}
+      >
+        {busy === 'translate' ? (
+          <Loader2 className="w-4 h-4 animate-spin" />
+        ) : (
+          <Languages className="w-4 h-4" />
+        )}
         {t('editor.subtitleDub.translate')}
       </button>
       {translatedEntries && (
-        <SubtitleEntryList entries={translatedEntries} onChangeText={updateTranslatedEntryText} disabled={!!busy} />
+        <SubtitleEntryList
+          entries={translatedEntries}
+          onChangeText={updateTranslatedEntryText}
+          disabled={!!busy}
+        />
       )}
       <button
         type="button"
@@ -854,8 +933,17 @@ export function SubtitleDubPanel({ engine, initialDraft, onDraftChange }: Props)
           ? t('editor.subtitleDub.previewing')
           : t('editor.subtitleDub.previewVoice')}
       </button>
-      <button type="button" className={btn} onClick={handleDub} disabled={!!busy || dubSource.length === 0}>
-        {busy === 'dub' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Music className="w-4 h-4" />}
+      <button
+        type="button"
+        className={btn}
+        onClick={handleDub}
+        disabled={!!busy || dubSource.length === 0}
+      >
+        {busy === 'dub' ? (
+          <Loader2 className="w-4 h-4 animate-spin" />
+        ) : (
+          <Music className="w-4 h-4" />
+        )}
         {t('editor.subtitleDub.generateVoiceover')}
       </button>
       <div className="text-[11px] text-ed-text-muted">{t('editor.subtitleDub.dubHint')}</div>
@@ -876,18 +964,21 @@ export function SubtitleDubPanel({ engine, initialDraft, onDraftChange }: Props)
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>{t('editor.subtitleDub.applyPositionPrompt')}</AlertDialogTitle>
-            <AlertDialogDescription>{t('editor.subtitleDub.applyPositionPromptDesc')}</AlertDialogDescription>
+            <AlertDialogDescription>
+              {t('editor.subtitleDub.applyPositionPromptDesc')}
+            </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>{t('editor.subtitleDub.justThisLine')}</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmApplyToAll}>{t('editor.subtitleDub.applyToAll')}</AlertDialogAction>
+            <AlertDialogAction onClick={confirmApplyToAll}>
+              {t('editor.subtitleDub.applyToAll')}
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </div>
   );
 }
-
 
 // Scrollable, directly-editable preview of a subtitle entry list — used for
 // both the original transcript and the translated one so the user can review

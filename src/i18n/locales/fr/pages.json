@@ -293,7 +293,7 @@
       "dubbing": "Doublage {{done}}/{{total}}…",
       "dubDone": "Voix ajoutée",
       "dubFailed": "Échec du doublage",
-      "dubHint": "Chaque ligne est doublée à son horodatage. Les longues lignes peuvent se chevaucher — glissez pour ajuster. L'audio original est conservé.",
+      "dubHint": "Chaque ligne est doublée et placée à l'heure de son sous-titre. Les lignes trop longues sont accélérées puis rognées pour que la suivante reste synchronisée. L'audio original est conservé.",
       "cancel": "Annuler",
       "cancelled": "Annulé",
       "noVideo": "Aucune vidéo dans l'éditeur",
@@ -342,7 +342,9 @@
         "red": "Red",
         "blue": "Blue",
         "green": "Green"
-      }
+      },
+      "proofreadHintPlaceholder": "ex. les noms sont vietnamiens ; le sujet est le football",
+      "translateHintPlaceholder": "ex. ne pas traduire les noms de marque, tutoyer le spectateur"
     }
   },
   "logs": {

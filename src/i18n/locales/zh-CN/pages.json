@@ -293,7 +293,7 @@
       "dubbing": "配音中 {{done}}/{{total}}…",
       "dubDone": "已添加配音",
       "dubFailed": "配音失败",
-      "dubHint": "每行配音并置于其字幕时间。较长的行可能重叠——拖动调整。保留原始音频。",
+      "dubHint": "每行按其字幕时间生成配音。过长的行会加速，并作裁剪以保证下一行不错位。原始音频将保留。",
       "cancel": "取消",
       "cancelled": "已取消",
       "noVideo": "编辑器中没有视频",
@@ -342,7 +342,9 @@
         "red": "Red",
         "blue": "Blue",
         "green": "Green"
-      }
+      },
+      "proofreadHintPlaceholder": "例如：说话人姓名是越南语，主题是足球",
+      "translateHintPlaceholder": "例如：品牌名不翻译，第二人称统一用“你”"
     }
   },
   "logs": {

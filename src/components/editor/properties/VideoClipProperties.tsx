@@ -11,6 +11,7 @@ import {
 } from '@elah/editor'
 import { Maximize2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { CleanupTab } from './CleanupTab'
 import {
   PANEL,
   PanelHeader,
@@ -20,13 +21,17 @@ import {
   mergeTransform,
 } from './propertiesShared'
 
-type Tab = 'transform' | 'style'
+type Tab = 'transform' | 'style' | 'cleanup'
 
 export function VideoClipProperties({ clip }: { clip: Clip }) {
   const { t } = useTranslation('pages')
+  // Cleanup rewrites source pixels, which only means something for a video —
+  // this component also serves image clips (see ClipProperties).
+  const isVideo = clip.type === 'video'
   const TABS: { id: Tab; label: string }[] = [
     { id: 'transform', label: t('editor.ui.transform') },
     { id: 'style', label: t('editor.ui.style') },
+    ...(isVideo ? [{ id: 'cleanup' as Tab, label: t('editor.cleanup.tab') }] : []),
   ]
   const engine = useTimelineEngine()
   const [local, setLocal] = useState<Partial<Clip>>({})
@@ -148,6 +153,8 @@ export function VideoClipProperties({ clip }: { clip: Clip }) {
             onChange={(v) => commit({ opacity: v })}
           />
         )}
+
+        {tab === 'cleanup' && isVideo && <CleanupTab clip={clip} />}
       </div>
     </div>
   )

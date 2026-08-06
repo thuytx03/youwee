@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useToast } from '@/components/ui/toast';
 import { toAssetUrl } from '@/lib/asset-access';
 import {
+  cleanupDerivedFiles,
   deleteDraft,
   listDrafts,
   renameDraft,
@@ -101,11 +102,25 @@ export function DraftGallery({ onOpenDraft, onNewProject }: Props) {
     void refresh();
   }, [refresh]);
 
+  // Reclaim generated videos no draft references any more. Runs here rather than
+  // inside the editor because a live session's cleaned files are not yet saved to
+  // any draft — sweeping mid-edit would delete the file the timeline is playing.
+  useEffect(() => {
+    void cleanupDerivedFiles().then((freed) => {
+      if (freed > 0) {
+        console.info(`[drafts] reclaimed ${(freed / 1_000_000).toFixed(0)} MB of unused files`);
+      }
+    });
+  }, []);
+
   const handleDelete = async (draft: EditorDraftSummary) => {
     setMenuFor(null);
     try {
       await deleteDraft(draft.id);
       setDrafts((prev) => prev?.filter((d) => d.id !== draft.id) ?? null);
+      // Its generated videos just became unreachable — reclaim them now rather
+      // than waiting for the next visit to this screen.
+      void cleanupDerivedFiles();
     } catch (e) {
       toast.error({ title: t('editor.drafts.deleteFailed'), message: String(e) });
     }

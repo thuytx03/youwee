@@ -106,5 +106,11 @@
     "WHISPER_NO_API_KEY": "Clave API de Whisper no configurada.",
     "WHISPER_UNSUPPORTED_FORMAT": "Formato de audio no compatible con Whisper.",
     "YT_SKIPPED_FILTER": "Omitido por el filtro de yt-dlp."
+  },
+  "aiHint": {
+    "toggle": "Instrucciones adicionales para la IA",
+    "active": "activo",
+    "placeholder": "p. ej. mantén los nombres de producto en inglés, usa un tono formal…",
+    "help": "Se añade al prompt integrado. Déjalo vacío para usar el comportamiento predeterminado."
   }
 }

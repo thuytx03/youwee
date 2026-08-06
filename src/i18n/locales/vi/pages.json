@@ -239,6 +239,35 @@
       "undo": "Hoàn tác",
       "redo": "Làm lại"
     },
+    "cleanup": {
+      "tab": "Xoá chữ",
+      "intro": "Xoá chữ đã nung vào video (phụ đề cứng, watermark).",
+      "drawRegion": "Chọn vùng",
+      "drawingOn": "Đang chọn — bấm để xong",
+      "drawHint": "Kéo một khung lên vùng chữ trên preview. Có nhiều vùng thì kéo thêm.",
+      "regions": "Vùng đã chọn ({{count}})",
+      "noRegions": "Chưa chọn vùng nào",
+      "removeRegion": "Xoá vùng này",
+      "clearAll": "Xoá hết",
+      "mode": "Cách xử lý",
+      "mode_delogo": "Xoá",
+      "mode_blur": "Làm mờ",
+      "mode_fill": "Ô đặc",
+      "modeHint_delogo": "Lấp vùng chọn bằng pixel xung quanh. Tốt nhất khi nền đơn giản; nền phức tạp có thể bị nhoè.",
+      "modeHint_blur": "Làm mờ vùng chọn. Luôn che được chữ nhưng thấy rõ vết mờ.",
+      "modeHint_fill": "Tô một ô đen đặc. Chắc chắn che kín, nhưng thô nhất.",
+      "run": "Xoá chữ",
+      "running": "Đang xử lý video…",
+      "cancel": "Huỷ",
+      "cancelled": "Đã huỷ xử lý",
+      "done": "Đã xoá chữ",
+      "failed": "Không xoá được chữ",
+      "timeHint": "Áp cho toàn bộ clip. Thời gian xử lý xấp xỉ độ dài video.",
+      "regionsOutside": "Vùng đã chọn nằm ngoài khung hình video",
+      "blocked_rotated": "Hãy đưa clip về 0° trước — công cụ này cần khung hình không xoay.",
+      "blocked_no_path": "Media này không có tệp trên đĩa. Nhập lại bằng \"+ Add\" để dùng được.",
+      "blocked_no_size": "Không rõ kích thước video nên không quy đổi được vùng chọn."
+    },
     "export": {
       "button": "Xuất",
       "title": "Xuất video",
@@ -349,7 +378,7 @@
       "dubbing": "Đang lồng tiếng {{done}}/{{total}}…",
       "dubDone": "Đã thêm lồng tiếng",
       "dubFailed": "Lồng tiếng thất bại",
-      "dubHint": "Mỗi câu được lồng tiếng và đặt đúng mốc phụ đề. Câu dài có thể chồng nhau — kéo để chỉnh. Âm thanh gốc được giữ nguyên.",
+      "dubHint": "Mỗi câu được lồng tiếng và đặt đúng mốc phụ đề. Câu quá dài sẽ được tăng tốc, rồi cắt bớt để câu sau vẫn khớp. Âm thanh gốc được giữ nguyên.",
       "previewVoice": "Nghe thử giọng",
       "previewing": "Đang phát thử…",
       "previewFailed": "Không phát được mẫu giọng",
@@ -402,7 +431,9 @@
         "red": "Đỏ",
         "blue": "Xanh dương",
         "green": "Xanh lá"
-      }
+      },
+      "proofreadHintPlaceholder": "VD: tên người nói là tiếng Việt; chủ đề là bóng đá",
+      "translateHintPlaceholder": "VD: giữ nguyên tên thương hiệu, dịch \"you\" thành \"bạn\""
     }
   },
   "logs": {

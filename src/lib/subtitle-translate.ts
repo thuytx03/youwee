@@ -94,6 +94,29 @@ function chunk<T extends { text: string }>(entries: T[]): T[][] {
 export interface SubtitleAIOptions {
   signal?: AbortSignal;
   onProgress?: (done: number, total: number) => void;
+  /**
+   * Free-form extra instructions from the user, appended to the built-in
+   * prompt for domain-specific cases (glossaries, tone, names to keep as-is,
+   * ...). Emitted before the structural rules (SEG tags, item count/order) so
+   * those always come last and keep the response parseable.
+   */
+  extraInstructions?: string;
+}
+
+/**
+ * Wrap the user's extra instructions in an explicit, delimited block so the
+ * model treats them as guidance rather than as subtitle content to translate.
+ */
+function extraInstructionLines(extra?: string): string[] {
+  const trimmed = extra?.trim();
+  if (!trimmed) return [];
+  return [
+    'Additional instructions from the user (follow them as long as they do not',
+    'conflict with the output-format rules below):',
+    '<USER_INSTRUCTIONS>',
+    trimmed,
+    '</USER_INSTRUCTIONS>',
+  ];
 }
 
 /**
@@ -179,6 +202,7 @@ export async function translateSubtitleTexts(
       [
         `Translate the following subtitle texts to ${targetLangName}.`,
         'Return ONLY translated output with EXACTLY the same SEG tags.',
+        ...extraInstructionLines(opts.extraInstructions),
         'Rules:',
         '- Keep the same number of items and the same order.',
         '- Do not merge, split, or drop items.',
@@ -215,6 +239,7 @@ export async function proofreadSubtitleTexts(
         'Do NOT rephrase, summarize, translate, add, or remove content — keep',
         'the language, wording, and meaning otherwise identical.',
         'Return ONLY the corrected output with EXACTLY the same SEG tags.',
+        ...extraInstructionLines(opts.extraInstructions),
         'Rules:',
         '- Keep the same number of items and the same order.',
         '- Do not merge, split, or drop items.',

@@ -347,7 +347,8 @@
     "progress": "Translating: {{current}}/{{total}}",
     "success": "Translation complete",
     "error": "Translation failed",
-    "keepOriginal": "Keep original as secondary"
+    "keepOriginal": "Keep original as secondary",
+    "hintPlaceholder": "e.g. keep brand names untranslated, use \"bạn\" for \"you\""
   },
   "grammar": {
     "title": "AI Grammar & Style Fix",
@@ -361,7 +362,8 @@
     "style": "Style",
     "formal": "Formal",
     "casual": "Casual",
-    "original": "Keep original style"
+    "original": "Keep original style",
+    "hintPlaceholder": "e.g. this is a cooking video — keep ingredient names as spoken"
   },
   "formats": {
     "srt": "SubRip (SRT)",

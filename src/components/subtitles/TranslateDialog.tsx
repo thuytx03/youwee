@@ -2,6 +2,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { Languages, Loader2, X } from 'lucide-react';
 import { useCallback, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { AIPromptHintField } from '@/components/shared/AIPromptHintField';
 import {
   Select,
   SelectContent,
@@ -81,6 +82,24 @@ function extractJsonArray(raw: string): string[] | null {
   }
 
   return null;
+}
+
+/**
+ * Wrap the user's extra instructions in a delimited block so the model treats
+ * them as guidance, not as subtitle content. Callers place the result BEFORE
+ * the output-format rules so those always come last and stay authoritative —
+ * the parser depends on the SEG tags / item count surviving.
+ */
+function extraInstructionLines(extra: string): string[] {
+  const trimmed = extra.trim();
+  if (!trimmed) return [];
+  return [
+    'Additional instructions from the user (follow them as long as they do not',
+    'conflict with the output-format rules below):',
+    '<USER_INSTRUCTIONS>',
+    trimmed,
+    '</USER_INSTRUCTIONS>',
+  ];
 }
 
 function buildTaggedSubtitleInput(texts: string[]) {
@@ -175,6 +194,9 @@ export function TranslateDialog({ open, onClose }: TranslateDialogProps) {
   const activeRunIdRef = useRef(0);
 
   const [targetLang, setTargetLang] = useState('vi');
+  // Free-form guidance appended to the built-in prompt (glossaries, tone,
+  // names to leave untranslated). Session-only: lives with the dialog mount.
+  const [extraInstructions, setExtraInstructions] = useState('');
   const [isTranslating, setIsTranslating] = useState(false);
   const [keepOriginal, setKeepOriginal] = useState(true);
   const [progress, setProgress] = useState({ current: 0, total: 0 });
@@ -273,6 +295,7 @@ export function TranslateDialog({ open, onClose }: TranslateDialogProps) {
         const prompt = [
           `Translate the following subtitle texts to ${targetLangName}.`,
           'Return ONLY translated output with EXACTLY the same SEG tags.',
+          ...extraInstructionLines(extraInstructions),
           'Rules:',
           '- Keep the same number of items and the same order.',
           '- Do not merge, split, or drop items.',
@@ -303,6 +326,7 @@ export function TranslateDialog({ open, onClose }: TranslateDialogProps) {
         // Last-resort path for a single subtitle line.
         const singlePrompt = [
           `Translate this subtitle text to ${targetLangName}.`,
+          ...extraInstructionLines(extraInstructions),
           'Return ONLY the translated text. No markdown. No explanations.',
           `Text:\n${chunk[0].text}`,
         ].join('\n');
@@ -344,7 +368,7 @@ export function TranslateDialog({ open, onClose }: TranslateDialogProps) {
         setIsTranslating(false);
       }
     }
-  }, [subtitle, targetLang, handleClose, keepOriginal]);
+  }, [subtitle, targetLang, extraInstructions, handleClose, keepOriginal]);
 
   if (!open) return null;
 
@@ -391,6 +415,14 @@ export function TranslateDialog({ open, onClose }: TranslateDialogProps) {
               </SelectContent>
             </Select>
           </div>
+
+          {/* Extra AI instructions */}
+          <AIPromptHintField
+            value={extraInstructions}
+            onChange={setExtraInstructions}
+            disabled={isTranslating}
+            placeholder={t('translate.hintPlaceholder')}
+          />
 
           {/* Scope */}
           <div className="text-sm text-muted-foreground">

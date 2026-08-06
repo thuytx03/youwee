@@ -347,7 +347,8 @@
     "progress": "Traduction : {{current}}/{{total}}",
     "success": "Traduction terminée",
     "error": "Échec de la traduction",
-    "keepOriginal": "Conserver l'original en secondaire"
+    "keepOriginal": "Conserver l'original en secondaire",
+    "hintPlaceholder": "ex. ne pas traduire les noms de marque, tutoyer le spectateur"
   },
   "grammar": {
     "title": "Correction grammaire & style IA",
@@ -361,7 +362,8 @@
     "style": "Style",
     "formal": "Formel",
     "casual": "Décontracté",
-    "original": "Conserver le style d'origine"
+    "original": "Conserver le style d'origine",
+    "hintPlaceholder": "ex. c’est une vidéo de cuisine — garder les noms des ingrédients tels quels"
   },
   "formats": {
     "srt": "SubRip (SRT)",

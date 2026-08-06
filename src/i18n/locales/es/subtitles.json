@@ -347,7 +347,8 @@
     "progress": "Traduciendo: {{current}}/{{total}}",
     "success": "Traducción completada",
     "error": "Error en la traducción",
-    "keepOriginal": "Mantener original como secundario"
+    "keepOriginal": "Mantener original como secundario",
+    "hintPlaceholder": "p. ej. no traducir nombres de marcas, tratar al espectador de tú"
   },
   "grammar": {
     "title": "Corrección gramatical y de estilo con IA",
@@ -361,7 +362,8 @@
     "style": "Estilo",
     "formal": "Formal",
     "casual": "Informal",
-    "original": "Mantener estilo original"
+    "original": "Mantener estilo original",
+    "hintPlaceholder": "p. ej. es un vídeo de cocina: conserva los nombres de los ingredientes tal como se dicen"
   },
   "formats": {
     "srt": "SubRip (SRT)",

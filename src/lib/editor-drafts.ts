@@ -56,6 +56,12 @@ export interface DraftMediaEntry {
   name: string;
   /** Absolute path. Null for assets imported before paths were tracked. */
   path: string | null;
+  /**
+   * True for files this app generated (e.g. a text-removal pass) rather than
+   * media the user imported. If one goes missing there is no point offering
+   * "locate the file" — the user never had it; it has to be regenerated.
+   */
+  derived?: boolean;
   /** The src at save time — the key for rewriting clip.src on reopen. */
   savedSrc: string;
   durationSec: number;
@@ -135,8 +141,15 @@ export interface RelinkResult {
  */
 const assetPaths = new Map<string, string>();
 
-export function rememberAssetPath(assetId: string, path: string): void {
+/**
+ * Assets this app generated (text removal, etc.) rather than the user importing.
+ * Same memory-only sidecar approach as `assetPaths`, for the same reason.
+ */
+const derivedAssetIds = new Set<string>();
+
+export function rememberAssetPath(assetId: string, path: string, derived = false): void {
   assetPaths.set(assetId, path);
+  if (derived) derivedAssetIds.add(assetId);
 }
 
 export function getAssetPath(assetId: string | undefined): string | undefined {
@@ -146,6 +159,60 @@ export function getAssetPath(assetId: string | undefined): string | undefined {
 export function primeAssetPaths(entries: DraftMediaEntry[]): void {
   for (const e of entries) {
     if (e.path) assetPaths.set(e.id, e.path);
+    if (e.derived) derivedAssetIds.add(e.id);
+  }
+}
+
+/**
+ * Remove an asset from the library and release what it owns.
+ *
+ * `removeAsset` alone only drops an in-memory entry, which leaks two ways: a
+ * blob: URL keeps its File alive for the life of the page, and a generated
+ * "cleaned" video (hundreds of MB) stays on disk forever. Neither is reachable
+ * again once the entry is gone, so this is the only chance to release them.
+ *
+ * Files a saved draft still references are kept — the Rust side re-checks that
+ * too, since it is the last line of defence for an unopenable project.
+ */
+export async function removeAssetAndCleanup(assetId: string): Promise<void> {
+  const asset = useMediaLibraryStore.getState().getAsset(assetId);
+  const path = assetPaths.get(assetId);
+  const wasDerived = derivedAssetIds.has(assetId);
+
+  useMediaLibraryStore.getState().removeAsset(assetId);
+  assetPaths.delete(assetId);
+  derivedAssetIds.delete(assetId);
+
+  // Object URLs are per-document; revoking frees the underlying File.
+  if (asset?.src?.startsWith('blob:')) {
+    try {
+      URL.revokeObjectURL(asset.src);
+    } catch {
+      /* already revoked — nothing to do */
+    }
+  }
+
+  // Only files this app generated get deleted. A user's own media is never
+  // touched, no matter how it entered the library.
+  if (wasDerived && path) {
+    try {
+      await invoke<boolean>('editor_delete_derived_file', { path });
+    } catch (e) {
+      console.warn('[drafts] could not delete derived file', path, e);
+    }
+  }
+}
+
+/**
+ * Delete generated files under `cleaned/` that no saved draft references.
+ * Returns bytes reclaimed. Safe to call at any time.
+ */
+export async function cleanupDerivedFiles(): Promise<number> {
+  try {
+    return await invoke<number>('editor_cleanup_derived');
+  } catch (e) {
+    console.warn('[drafts] derived cleanup failed', e);
+    return 0;
   }
 }
 
@@ -231,6 +298,7 @@ export function buildMediaManifest(): { media: DraftMediaEntry[]; order: string[
       kind: a.kind,
       name: a.name,
       path: assetPaths.get(a.id) ?? null,
+      ...(derivedAssetIds.has(a.id) ? { derived: true } : {}),
       savedSrc: a.src,
       durationSec: a.durationSec,
       width: a.width,
@@ -374,7 +442,7 @@ export async function relinkDraftMedia(env: DraftEnvelope): Promise<RelinkResult
 }
 
 /** Rebuild the thumbnails and waveforms that were intentionally not persisted. */
-async function regenerateDerivedMedia(assets: MediaAsset[]): Promise<void> {
+export async function regenerateDerivedMedia(assets: MediaAsset[]): Promise<void> {
   const { updateAsset } = useMediaLibraryStore.getState();
   for (const asset of assets) {
     if (asset.kind === 'video') {

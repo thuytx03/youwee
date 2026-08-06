@@ -347,7 +347,8 @@
     "progress": "Çeviri: {{current}}/{{total}}",
     "success": "Çeviri tamamlandı",
     "error": "Çeviri başarısız oldu",
-    "keepOriginal": "Orijinali ikincil olarak koruyun"
+    "keepOriginal": "Orijinali ikincil olarak koruyun",
+    "hintPlaceholder": "ör. marka adlarını çevirme, izleyiciye \"sen\" diye hitap et"
   },
   "grammar": {
     "title": "AI Dilbilgisi ve Stil Düzeltme",
@@ -361,7 +362,8 @@
     "style": "Stil",
     "formal": "Resmi",
     "casual": "Gündelik",
-    "original": "Orijinal tarzı koru"
+    "original": "Orijinal tarzı koru",
+    "hintPlaceholder": "ör. bu bir yemek videosu — malzeme adlarını söylendiği gibi koru"
   },
   "formats": {
     "srt": "SubRip (SRT)",

@@ -451,6 +451,10 @@ pub fn run() {
             commands::editor_save_export,
             commands::editor_tts_synthesize,
             commands::editor_transcribe_bytes,
+            // Burned-in text removal
+            commands::editor_remove_text_region,
+            commands::editor_cleanup_derived,
+            commands::editor_delete_derived_file,
             // Editor drafts (saved editing sessions)
             commands::editor_list_drafts,
             commands::editor_get_draft,

@@ -347,7 +347,8 @@
     "progress": "翻译中: {{current}}/{{total}}",
     "success": "翻译完成",
     "error": "翻译失败",
-    "keepOriginal": "保留原文作为副字幕"
+    "keepOriginal": "保留原文作为副字幕",
+    "hintPlaceholder": "例如：品牌名不翻译，第二人称统一用“你”"
   },
   "grammar": {
     "title": "AI语法和风格修复",
@@ -361,7 +362,8 @@
     "style": "风格",
     "formal": "正式",
     "casual": "随意",
-    "original": "保持原始风格"
+    "original": "保持原始风格",
+    "hintPlaceholder": "例如：这是一个烹饪视频，食材名称按口述保留"
   },
   "formats": {
     "srt": "SubRip (SRT)",

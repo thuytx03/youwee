@@ -347,7 +347,8 @@
     "progress": "Tarjima: {{current}}/{{total}}",
     "success": "Tarjima tugallandi",
     "error": "Tarjima amalga oshmadi",
-    "keepOriginal": "Asl nusxani ikkinchi darajali sifatida saqlang"
+    "keepOriginal": "Asl nusxani ikkinchi darajali sifatida saqlang",
+    "hintPlaceholder": "masalan: brend nomlarini tarjima qilma, \"siz\" shaklidan foydalan"
   },
   "grammar": {
     "title": "AI Grammatika va uslubni tuzatish",
@@ -361,7 +362,8 @@
     "style": "Uslub",
     "formal": "Rasmiy",
     "casual": "Tasodifiy",
-    "original": "Asl uslubni saqlang"
+    "original": "Asl uslubni saqlang",
+    "hintPlaceholder": "masalan: bu pishirish videosi — masalliq nomlarini aytilganidek qoldir"
   },
   "formats": {
     "srt": "SubRip (SRT)",

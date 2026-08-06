@@ -105,5 +105,11 @@
     "WHISPER_NO_API_KEY": "Whisper API kaliti sozlanmagan.",
     "WHISPER_UNSUPPORTED_FORMAT": "Whisper uchun qoʻllab-quvvatlanmaydigan audio formati.",
     "YT_SKIPPED_FILTER": "yt-dlp moslik filtri oʻtkazib yubordi."
+  },
+  "aiHint": {
+    "toggle": "AI uchun qoʻshimcha koʻrsatmalar",
+    "active": "yoniq",
+    "placeholder": "masalan: mahsulot nomlarini inglizcha qoldir, rasmiy uslub…",
+    "help": "Tayyor promptga qoʻshiladi. Standart holat uchun boʻsh qoldiring."
   }
 }

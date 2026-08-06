@@ -106,5 +106,11 @@
     "WHISPER_NO_API_KEY": "Whisper API key not configured.",
     "WHISPER_UNSUPPORTED_FORMAT": "Unsupported audio format for Whisper.",
     "YT_SKIPPED_FILTER": "Skipped by yt-dlp match filter."
+  },
+  "aiHint": {
+    "toggle": "Extra instructions for the AI",
+    "active": "on",
+    "placeholder": "e.g. keep product names in English, use a formal tone…",
+    "help": "Added on top of the built-in prompt. Leave empty to use the default behaviour."
   }
 }

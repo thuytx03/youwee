@@ -105,5 +105,11 @@
     "WHISPER_NO_API_KEY": "Cheia Whisper API nu este configurată.",
     "WHISPER_UNSUPPORTED_FORMAT": "Format audio neacceptat pentru Whisper.",
     "YT_SKIPPED_FILTER": "Omis de filtrul de potrivire yt-dlp."
+  },
+  "aiHint": {
+    "toggle": "Instrucțiuni suplimentare pentru AI",
+    "active": "activ",
+    "placeholder": "ex.: păstrează numele produselor în engleză, folosește un ton formal…",
+    "help": "Se adaugă la promptul integrat. Lasă gol pentru comportamentul implicit."
   }
 }

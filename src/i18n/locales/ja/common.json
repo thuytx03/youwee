@@ -106,5 +106,11 @@
     "WHISPER_NO_API_KEY": "Whisper API キーが設定されていません。",
     "WHISPER_UNSUPPORTED_FORMAT": "Whisper でサポートされていない音声フォーマットです。",
     "YT_SKIPPED_FILTER": "yt-dlp のマッチフィルターによりスキップされました。"
+  },
+  "aiHint": {
+    "toggle": "AI への追加指示",
+    "active": "有効",
+    "placeholder": "例: 製品名は英語のまま、フォーマルな文体で…",
+    "help": "既定のプロンプトに追記されます。空欄にすると既定の動作になります。"
   }
 }

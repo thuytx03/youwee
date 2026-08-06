@@ -106,5 +106,11 @@
     "WHISPER_NO_API_KEY": "لم يتم إعداد مفتاح API الخاص بـ Whisper.",
     "WHISPER_UNSUPPORTED_FORMAT": "تنسيق الصوت غير مدعوم في Whisper.",
     "YT_SKIPPED_FILTER": "Skipped by yt-dlp match filter."
+  },
+  "aiHint": {
+    "toggle": "تعليمات إضافية للذكاء الاصطناعي",
+    "active": "مُفعّل",
+    "placeholder": "مثال: احتفظ بأسماء المنتجات بالإنجليزية، استخدم أسلوبًا رسميًا…",
+    "help": "تُضاف إلى التعليمات المدمجة. اتركه فارغًا لاستخدام السلوك الافتراضي."
   }
 }

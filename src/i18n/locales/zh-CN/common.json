@@ -106,5 +106,11 @@
     "WHISPER_NO_API_KEY": "未配置 Whisper API Key。",
     "WHISPER_UNSUPPORTED_FORMAT": "Whisper 不支持该音频格式。",
     "YT_SKIPPED_FILTER": "已被 yt-dlp 匹配过滤器跳过。"
+  },
+  "aiHint": {
+    "toggle": "AI 附加说明",
+    "active": "已启用",
+    "placeholder": "例如：产品名保留英文、使用正式语气…",
+    "help": "会追加到内置提示词后。留空则使用默认行为。"
   }
 }

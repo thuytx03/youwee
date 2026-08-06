@@ -106,5 +106,11 @@
     "WHISPER_NO_API_KEY": "Chưa cấu hình API key cho Whisper.",
     "WHISPER_UNSUPPORTED_FORMAT": "Định dạng âm thanh không được Whisper hỗ trợ.",
     "YT_SKIPPED_FILTER": "Đã bỏ qua theo bộ lọc match của yt-dlp."
+  },
+  "aiHint": {
+    "toggle": "Hướng dẫn thêm cho AI",
+    "active": "đang bật",
+    "placeholder": "VD: giữ nguyên tên sản phẩm bằng tiếng Anh, dùng giọng văn trang trọng…",
+    "help": "Được thêm vào prompt có sẵn. Để trống nếu dùng mặc định."
   }
 }

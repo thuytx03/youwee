@@ -106,5 +106,11 @@
     "WHISPER_NO_API_KEY": "ยังไม่ได้ตั้งค่า Whisper API key",
     "WHISPER_UNSUPPORTED_FORMAT": "รูปแบบเสียงนี้ยังไม่รองรับสำหรับ Whisper",
     "YT_SKIPPED_FILTER": "Skipped by yt-dlp match filter."
+  },
+  "aiHint": {
+    "toggle": "คำสั่งเพิ่มเติมสำหรับ AI",
+    "active": "เปิดใช้",
+    "placeholder": "เช่น คงชื่อสินค้าเป็นภาษาอังกฤษ ใช้ภาษาที่เป็นทางการ…",
+    "help": "เพิ่มเข้าไปในพรอมป์ต์เดิม เว้นว่างไว้เพื่อใช้ค่าเริ่มต้น"
   }
 }

@@ -239,6 +239,35 @@
       "undo": "Undo",
       "redo": "Redo"
     },
+    "cleanup": {
+      "tab": "Cleanup",
+      "intro": "Remove text burned into the video itself (hardcoded subtitles, watermarks).",
+      "drawRegion": "Select region",
+      "drawingOn": "Selecting — click to finish",
+      "drawHint": "Drag a box over the text on the preview. Add more boxes if there are several.",
+      "regions": "Regions ({{count}})",
+      "noRegions": "No regions selected yet",
+      "removeRegion": "Remove region",
+      "clearAll": "Clear all",
+      "mode": "Method",
+      "mode_delogo": "Erase",
+      "mode_blur": "Blur",
+      "mode_fill": "Solid",
+      "modeHint_delogo": "Fills the box from surrounding pixels. Best on a plain background; may smear on a busy one.",
+      "modeHint_blur": "Blurs the box. Always covers the text, but the blur is visible.",
+      "modeHint_fill": "Paints a solid black box. Guaranteed cover, least subtle.",
+      "run": "Remove text",
+      "running": "Processing video…",
+      "cancel": "Cancel",
+      "cancelled": "Processing cancelled",
+      "done": "Text removed",
+      "failed": "Could not remove text",
+      "timeHint": "Applies to the whole clip. Takes about as long as the video's duration.",
+      "regionsOutside": "The selected region falls outside the video picture",
+      "blocked_rotated": "Rotate the clip back to 0° first — this tool needs an unrotated frame.",
+      "blocked_no_path": "This media has no file on disk. Re-import it with \"+ Add\" to use this tool.",
+      "blocked_no_size": "The video's dimensions are unknown, so the region can't be mapped."
+    },
     "export": {
       "button": "Export",
       "title": "Export video",
@@ -349,7 +378,7 @@
       "dubbing": "Voicing {{done}}/{{total}}…",
       "dubDone": "Voiceover added",
       "dubFailed": "Voiceover failed",
-      "dubHint": "Each line is voiced and placed at its subtitle time. Long lines may overlap — drag to adjust. Original audio is kept.",
+      "dubHint": "Each line is voiced and placed at its subtitle time. Lines too long for their slot are sped up, then trimmed so the next line stays in sync. Original audio is kept.",
       "previewVoice": "Preview voice",
       "previewing": "Playing sample…",
       "previewFailed": "Could not play the voice sample",
@@ -402,7 +431,9 @@
         "red": "Red",
         "blue": "Blue",
         "green": "Green"
-      }
+      },
+      "proofreadHintPlaceholder": "e.g. speaker names are Vietnamese; the topic is football",
+      "translateHintPlaceholder": "e.g. keep brand names untranslated, use \"bạn\" for \"you\""
     }
   },
   "logs": {
