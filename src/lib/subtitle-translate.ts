@@ -9,7 +9,11 @@ import { invoke } from '@tauri-apps/api/core';
 const MAX_CHARS = 10_000;
 const MAX_ENTRIES = 80;
 const MAX_RETRIES = 3;
-const REQUEST_SPACING_MS = 1500;
+// Chunks are independent (each carries its own SEG-tagged slice), so a few can
+// be in flight at once. Rate limits are handled reactively — retry with
+// backoff on 429 — rather than by preemptively spacing every request, which
+// made long transcripts crawl even when the provider had headroom.
+const CHUNK_CONCURRENCY = 3;
 export const TRANSLATE_CANCELLED = 'TRANSLATE_CANCELLED';
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -134,16 +138,12 @@ async function runSubtitleAIPass(
   const cancelled = () => signal?.aborted;
   const indexed = texts.map((text, i) => ({ text, i }));
   const result = new Array<string>(texts.length);
-  let lastReq = 0;
   let done = 0;
 
   const callAI = async (prompt: string): Promise<string> => {
     let attempt = 0;
     while (attempt <= MAX_RETRIES) {
       if (cancelled()) throw new Error(TRANSLATE_CANCELLED);
-      const wait = REQUEST_SPACING_MS - (Date.now() - lastReq);
-      if (wait > 0) await sleep(wait);
-      lastReq = Date.now();
       try {
         return await invoke<string>('generate_ai_response', { prompt });
       } catch (err) {
@@ -181,9 +181,30 @@ async function runSubtitleAIPass(
     onProgress?.(done, texts.length);
   };
 
-  for (const c of chunk(indexed)) {
-    await processChunk(c);
-  }
+  // Worker pool over the chunk queue. On a hard failure the other in-flight
+  // chunks are left to finish (their results land in `result` but the whole
+  // pass throws, matching the old sequential behavior of discarding on error);
+  // workers just stop pulling new chunks.
+  const chunks = chunk(indexed);
+  let nextChunk = 0;
+  let firstError: unknown = null;
+  const worker = async () => {
+    while (firstError === null && !cancelled()) {
+      const c = chunks[nextChunk++];
+      if (!c) return;
+      try {
+        await processChunk(c);
+      } catch (err) {
+        firstError = firstError ?? err;
+        return;
+      }
+    }
+  };
+  await Promise.all(
+    Array.from({ length: Math.min(CHUNK_CONCURRENCY, chunks.length) }, () => worker()),
+  );
+  if (firstError !== null) throw firstError;
+  if (cancelled()) throw new Error(TRANSLATE_CANCELLED);
   return result;
 }
 

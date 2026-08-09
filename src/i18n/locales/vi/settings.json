@@ -4,6 +4,7 @@
   "sections": {
     "general": "Chung",
     "dependencies": "Phụ thuộc",
+    "storage": "Bộ nhớ & Model",
     "download": "Tải xuống",
     "remoteDownload": "Tải từ xa",
     "plugins": "Plugin",
@@ -924,5 +925,46 @@
     "publisher": "Nhà phát hành",
     "thirdPartyNotice": "Plugin bên thứ ba không được Youwee kiểm duyệt. Hãy tự kiểm tra và tin tưởng trước khi cài.",
     "refresh": "Làm mới"
+  },
+  "storage": {
+    "title": "Bộ nhớ & Model",
+    "description": "Xem dung lượng các model AI và thư viện đã cài, dọn dẹp khi cần.",
+    "loading": "Đang tính dung lượng…",
+    "refresh": "Làm mới",
+    "faceSwap": {
+      "name": "Đổi mặt",
+      "installedTotal": "Đã cài · {{size}}",
+      "notInstalled": "Chưa cài đặt",
+      "installHint": "Mở trình chỉnh sửa video → tab Đổi mặt để cài đặt tính năng này.",
+      "models": "Model AI",
+      "modelsHint": "Có thể dọn an toàn — sẽ tự tải lại khi đổi mặt lần sau.",
+      "runtime": "Môi trường chạy",
+      "runtimeHint": "Python và thư viện — chỉ xóa khi gỡ cài đặt hoàn toàn.",
+      "cleanModels": "Dọn cache model",
+      "cleanConfirm": "Xóa toàn bộ model AI đã tải? Lần đổi mặt sau sẽ tải lại (~550MB).",
+      "cleanDone": "Đã dọn cache model",
+      "cleanFailed": "Dọn cache thất bại",
+      "freed": "Đã giải phóng {{size}}",
+      "cleanNote": "“Dọn cache model” chỉ xóa model đã tải, giữ nguyên phần cài đặt. “Gỡ cài đặt” xóa sạch để cài lại từ đầu.",
+      "uninstall": "Gỡ cài đặt hoàn toàn",
+      "uninstallConfirm": "Gỡ toàn bộ công cụ đổi mặt (model + Python + thư viện)? Cần cài lại từ đầu nếu muốn dùng lại.",
+      "uninstallDone": "Đã gỡ cài đặt công cụ đổi mặt",
+      "uninstallFailed": "Gỡ cài đặt thất bại"
+    },
+    "voices": {
+      "name": "Giọng đọc local (VieNeu)",
+      "models": "Model giọng",
+      "modelsHint": "Xóa an toàn — sẽ tự tải lại ở lần tạo giọng kế tiếp.",
+      "cloned": "Giọng đã clone",
+      "clonedHint": "Bản ghi âm mẫu của bạn — chỉ mất khi gỡ cài đặt hoàn toàn.",
+      "cleanConfirm": "Xóa model giọng đã tải? Lần tạo giọng kế tiếp sẽ tải lại.",
+      "cleanDone": "Đã xóa cache model giọng",
+      "cleanFailed": "Xóa cache model giọng thất bại",
+      "cleanNote": "\"Xóa cache model\" giữ nguyên bộ cài và giọng clone. \"Gỡ cài đặt\" xóa toàn bộ, kể cả giọng đã clone.",
+      "uninstallConfirm": "Gỡ bộ máy giọng nói local (model + Python + thư viện)? Các giọng đã clone cũng sẽ bị xóa.",
+      "uninstallDone": "Đã gỡ bộ máy giọng nói local",
+      "uninstallFailed": "Gỡ cài đặt thất bại",
+      "installHint": "Mở trang Giọng đọc ở thanh bên để cài tính năng này."
+    }
   }
 }

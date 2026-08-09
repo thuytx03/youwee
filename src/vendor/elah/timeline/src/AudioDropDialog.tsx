@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { useAudioDropDialogStore, type AudioDropChoice } from './audioDropDialog.store'
 
 interface ChoiceDef {
@@ -22,12 +23,26 @@ const CHOICES: ChoiceDef[] = [
  * Full-screen blocking modal shown when a video carrying an audio track is
  * dropped onto the timeline. Mounted once inside <Timeline>. Renders nothing
  * until `useAudioDropDialogStore.request()` opens it; resolves that request
- * when the user picks a placement. No dismiss path — dropping implies intent.
+ * when the user picks a placement, or `null` when dismissed (Escape,
+ * backdrop click, or the close button).
  */
 export function AudioDropDialog() {
   const open = useAudioDropDialogStore((s) => s.open)
   const assetName = useAudioDropDialogStore((s) => s.assetName)
   const respond = useAudioDropDialogStore((s) => s.respond)
+  const cancel = useAudioDropDialogStore((s) => s.cancel)
+
+  useEffect(() => {
+    if (!open) return
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.stopPropagation()
+        cancel()
+      }
+    }
+    window.addEventListener('keydown', onKeyDown, true)
+    return () => window.removeEventListener('keydown', onKeyDown, true)
+  }, [open, cancel])
 
   if (!open) return null
 
@@ -36,6 +51,9 @@ export function AudioDropDialog() {
       role="dialog"
       aria-modal="true"
       aria-label="Choose how to add this media"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) cancel()
+      }}
       style={{
         position: 'fixed',
         inset: 0,
@@ -59,17 +77,50 @@ export function AudioDropDialog() {
           padding: 22,
         }}
       >
-        <h2
-          style={{
-            margin: 0,
-            fontSize: 15,
-            fontWeight: 700,
-            color: `var(--elah-text)`,
-            letterSpacing: '-0.01em',
-          }}
-        >
-          This video has audio
-        </h2>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <h2
+            style={{
+              margin: 0,
+              fontSize: 15,
+              fontWeight: 700,
+              color: `var(--elah-text)`,
+              letterSpacing: '-0.01em',
+            }}
+          >
+            This video has audio
+          </h2>
+          <button
+            type="button"
+            aria-label="Close"
+            onClick={cancel}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: 24,
+              height: 24,
+              padding: 0,
+              border: 'none',
+              borderRadius: 6,
+              background: 'transparent',
+              color: `var(--elah-text-muted)`,
+              cursor: 'pointer',
+              fontSize: 16,
+              lineHeight: 1,
+              transition: 'background 0.12s, color 0.12s',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'var(--elah-dialog-option-bg-hover)'
+              e.currentTarget.style.color = 'var(--elah-text)'
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'transparent'
+              e.currentTarget.style.color = 'var(--elah-text-muted)'
+            }}
+          >
+            ×
+          </button>
+        </div>
         <p
           style={{
             margin: '6px 0 18px',

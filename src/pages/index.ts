@@ -10,3 +10,4 @@ export { SubtitlesPage } from './SubtitlesPage';
 export { SummaryPage } from './SummaryPage';
 export { UniversalPage } from './UniversalPage';
 export { VideoEditorPage } from './VideoEditorPage';
+export { VoicesPage } from './VoicesPage';

@@ -312,32 +312,55 @@ fn draft_referenced_paths() -> HashSet<String> {
 /// Returns the number of bytes reclaimed.
 #[tauri::command]
 pub async fn editor_cleanup_derived(app: AppHandle) -> Result<u64, String> {
-    let dir = app
+    let app_data = app
         .path()
         .app_data_dir()
-        .map_err(|e| format!("Failed to resolve app data dir: {}", e))?
-        .join("cleaned");
-    if !dir.exists() {
-        return Ok(0);
-    }
-
-    let keep = draft_referenced_paths();
+        .map_err(|e| format!("Failed to resolve app data dir: {}", e))?;
+    let dir = app_data.join("cleaned");
     let mut freed: u64 = 0;
 
-    for entry in std::fs::read_dir(&dir)
-        .map_err(|e| format!("Failed to read cleaned dir: {}", e))?
-        .filter_map(|e| e.ok())
-    {
-        let path = entry.path();
-        if !path.is_file() {
-            continue;
+    if dir.exists() {
+        let keep = draft_referenced_paths();
+
+        for entry in std::fs::read_dir(&dir)
+            .map_err(|e| format!("Failed to read cleaned dir: {}", e))?
+            .filter_map(|e| e.ok())
+        {
+            let path = entry.path();
+            if !path.is_file() {
+                continue;
+            }
+            if keep.contains(&path.to_string_lossy().to_string()) {
+                continue;
+            }
+            let size = entry.metadata().map(|m| m.len()).unwrap_or(0);
+            if std::fs::remove_file(&path).is_ok() {
+                freed += size;
+            }
         }
-        if keep.contains(&path.to_string_lossy().to_string()) {
-            continue;
-        }
-        let size = entry.metadata().map(|m| m.len()).unwrap_or(0);
-        if std::fs::remove_file(&path).is_ok() {
-            freed += size;
+    }
+
+    // Also sweep stale IPC staging files (tmp/ holds videos the frontend hands
+    // to transcribe/export commands; both sides delete them within seconds, so
+    // anything older than an hour is an orphan from a crash mid-run).
+    let tmp_dir = app_data.join("tmp");
+    if tmp_dir.exists() {
+        if let Ok(entries) = std::fs::read_dir(&tmp_dir) {
+            for entry in entries.filter_map(|e| e.ok()) {
+                let path = entry.path();
+                if !path.is_file() {
+                    continue;
+                }
+                let Ok(meta) = entry.metadata() else { continue };
+                let stale = meta
+                    .modified()
+                    .ok()
+                    .and_then(|m| m.elapsed().ok())
+                    .is_some_and(|age| age.as_secs() > 3600);
+                if stale && std::fs::remove_file(&path).is_ok() {
+                    freed += meta.len();
+                }
+            }
         }
     }
 

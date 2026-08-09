@@ -1,8 +1,10 @@
 // TTS voice presets per provider for the editor voiceover feature.
-// Only the two providers the app configures with a usable TTS API are offered.
+// Cloud providers (OpenAI/Gemini) have fixed voice lists; the 'local' provider
+// (VieNeu-TTS, Vietnamese-focused, runs on-device) reports its presets and the
+// user's cloned voices at runtime, so its list here stays empty.
 import { LANGUAGE_OPTIONS } from '@/lib/types';
 
-export type TtsProvider = 'openai' | 'gemini';
+export type TtsProvider = 'openai' | 'gemini' | 'local';
 
 export interface TtsVoice {
   id: string;
@@ -10,6 +12,7 @@ export interface TtsVoice {
 }
 
 export const TTS_VOICES: Record<TtsProvider, TtsVoice[]> = {
+  local: [],
   openai: [
     { id: 'alloy', label: 'Alloy' },
     { id: 'echo', label: 'Echo' },
@@ -36,6 +39,7 @@ export const TTS_VOICES: Record<TtsProvider, TtsVoice[]> = {
 export const DEFAULT_TTS_MODEL: Record<TtsProvider, string> = {
   openai: 'gpt-4o-mini-tts',
   gemini: 'gemini-2.5-flash-preview-tts',
+  local: '',
 };
 
 // Map the active app UI locale (e.g. "zh-CN") to a translation language option

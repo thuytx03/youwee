@@ -2,7 +2,19 @@ import type { Clip, TimelineEngine } from '@elah/editor';
 import { useMediaLibraryStore, useTracksStore } from '@elah/editor';
 import { open } from '@tauri-apps/plugin-dialog';
 import { readTextFile } from '@tauri-apps/plugin-fs';
-import { Captions, Languages, Loader2, Mic, Music, SpellCheck, Volume2, Wand2 } from 'lucide-react';
+import {
+  Captions,
+  Download,
+  Languages,
+  Loader2,
+  Mic,
+  Music,
+  SpellCheck,
+  Trash2,
+  UserPlus,
+  Volume2,
+  Wand2,
+} from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AIPromptHintField } from '@/components/shared/AIPromptHintField';
@@ -25,7 +37,19 @@ import {
 } from '@/components/ui/select';
 import { useToast } from '@/components/ui/toast';
 import { useAI } from '@/contexts/AIContext';
-import { transcribeVideoBytes, ttsSynthesize } from '@/contexts/editor/editor-client';
+import {
+  getDefaultLocalVoice,
+  localTtsAddVoice,
+  localTtsDeleteVoice,
+  localTtsInstall,
+  localTtsStatus,
+  localTtsVoices,
+  onLocalTtsSetup,
+  transcribeVideoBytes,
+  ttsSynthesize,
+  type LocalTtsStatus,
+  type LocalTtsVoices,
+} from '@/contexts/editor/editor-client';
 import { toAssetUrl } from '@/lib/asset-access';
 import type { SubtitleDubDraft } from '@/lib/editor-drafts';
 import { parseSubtitles, type SubtitleEntry } from '@/lib/subtitle-parser';
@@ -171,9 +195,159 @@ export function SubtitleDubPanel({ engine, initialDraft, onDraftChange }: Props)
     styleMoved,
   ]);
 
-  const ttsProvider: TtsProvider = ai.config.provider === 'openai' ? 'openai' : 'gemini';
-  const [voice, setVoice] = useState(TTS_VOICES[ttsProvider][0].id);
+  // Voice engine: the configured cloud provider, or the app-managed local
+  // VieNeu engine (Vietnamese-focused, free, offline, with voice cloning).
+  const cloudProvider: TtsProvider = ai.config.provider === 'openai' ? 'openai' : 'gemini';
+  const [engineChoice, setEngineChoice] = useState<'cloud' | 'local'>('cloud');
+  const ttsProvider: TtsProvider = engineChoice === 'local' ? 'local' : cloudProvider;
+  const [voice, setVoice] = useState(TTS_VOICES[cloudProvider][0].id);
   const ttsModel = DEFAULT_TTS_MODEL[ttsProvider];
+
+  // Local engine state, loaded lazily when the user switches to it.
+  const [localStatus, setLocalStatus] = useState<LocalTtsStatus | null>(null);
+  const [localInstalling, setLocalInstalling] = useState(false);
+  const [localSetupMsg, setLocalSetupMsg] = useState('');
+  const [localVoices, setLocalVoices] = useState<LocalTtsVoices | null>(null);
+  const [localVoicesLoading, setLocalVoicesLoading] = useState(false);
+  const [cloneOpen, setCloneOpen] = useState(false);
+  const [cloneName, setCloneName] = useState('');
+  const [cloneBusy, setCloneBusy] = useState(false);
+
+  // Voice options for the active engine. Local voices are dynamic: the SDK's
+  // preset voices plus the user's cloned profiles.
+  const localVoiceOptions = useMemo(
+    () =>
+      localVoices
+        ? [
+            // Fine-tuned LoRA voices (slow engine — fine for short dubs).
+            ...(localVoices.loras ?? []).map((p) => ({ id: `lora:${p.id}`, label: `✨ ${p.label}` })),
+            // Bundled voices ship with the app — listed as built-ins, no 👤.
+            ...localVoices.profiles
+              .filter((p) => p.builtin)
+              .map((p) => ({ id: `profile:${p.id}`, label: p.name })),
+            ...localVoices.presets.map((p) => ({ id: `preset:${p.id}`, label: p.label })),
+            ...localVoices.profiles
+              .filter((p) => !p.builtin)
+              .map((p) => ({ id: `profile:${p.id}`, label: `👤 ${p.name}` })),
+          ]
+        : [],
+    [localVoices],
+  );
+  const voiceOptions = ttsProvider === 'local' ? localVoiceOptions : TTS_VOICES[ttsProvider];
+
+  const refreshLocalVoices = async () => {
+    setLocalVoicesLoading(true);
+    try {
+      setLocalVoices(await localTtsVoices());
+    } catch (e) {
+      toast.error({ title: t('editor.subtitleDub.localVoicesFailed'), message: String(e) });
+    } finally {
+      setLocalVoicesLoading(false);
+    }
+  };
+
+  // Entering local mode: check the install, and if present fetch voices.
+  // The first voices call also boots the synthesis worker (loads the model),
+  // so localVoicesLoading doubles as the "engine starting…" indicator.
+  useEffect(() => {
+    if (engineChoice !== 'local') return;
+    let cancelled = false;
+    (async () => {
+      const status = await localTtsStatus().catch(() => null);
+      if (cancelled) return;
+      setLocalStatus(status);
+      if (!status?.installed || localVoices) return;
+      setLocalVoicesLoading(true);
+      try {
+        const v = await localTtsVoices();
+        if (!cancelled) setLocalVoices(v);
+      } catch (e) {
+        if (!cancelled)
+          toast.error({ title: t('editor.subtitleDub.localVoicesFailed'), message: String(e) });
+      } finally {
+        if (!cancelled) setLocalVoicesLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // Refetch only on engine switch; voices refresh explicitly after mutations.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [engineChoice]);
+
+  // Keep the selected voice valid for the active engine's option list. For
+  // the local engine, start from the user's default voice (set on the Voices
+  // page) rather than whatever happens to be first.
+  useEffect(() => {
+    if (voiceOptions.length > 0 && !voiceOptions.some((o) => o.id === voice)) {
+      const def = ttsProvider === 'local' ? getDefaultLocalVoice() : null;
+      setVoice(def && voiceOptions.some((o) => o.id === def) ? def : voiceOptions[0].id);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [voiceOptions]);
+
+  const handleLocalInstall = async () => {
+    setLocalInstalling(true);
+    setLocalSetupMsg('');
+    const unlisten = await onLocalTtsSetup((e) => setLocalSetupMsg(e.payload.message));
+    try {
+      const status = await localTtsInstall();
+      setLocalStatus(status);
+      if (status.installed) {
+        toast.success({ title: t('editor.subtitleDub.localInstalled') });
+        await refreshLocalVoices();
+      }
+    } catch (e) {
+      toast.error({ title: t('editor.subtitleDub.localInstallFailed'), message: String(e) });
+    } finally {
+      unlisten();
+      setLocalInstalling(false);
+      setLocalSetupMsg('');
+    }
+  };
+
+  const handleCloneVoice = async () => {
+    const file = await open({
+      multiple: false,
+      filters: [
+        { name: 'Audio', extensions: ['wav', 'mp3', 'm4a', 'flac', 'ogg', 'aac', 'webm', 'mp4'] },
+      ],
+    });
+    if (typeof file !== 'string') return;
+    setCloneBusy(true);
+    try {
+      const profile = await localTtsAddVoice({
+        name: cloneName.trim() || t('editor.subtitleDub.cloneDefaultName'),
+        sourcePath: file,
+      });
+      // Show the new voice immediately — profiles live on disk, no need to
+      // wait for the (possibly cold) synthesis worker to list them again.
+      setLocalVoices((prev) =>
+        prev
+          ? { ...prev, profiles: [...prev.profiles, profile] }
+          : { presets: [], profiles: [profile] },
+      );
+      setVoice(`profile:${profile.id}`);
+      setCloneName('');
+      setCloneOpen(false);
+      toast.success({ title: t('editor.subtitleDub.cloneAdded', { name: profile.name }) });
+    } catch (e) {
+      toast.error({ title: t('editor.subtitleDub.cloneFailed'), message: String(e) });
+    } finally {
+      setCloneBusy(false);
+    }
+  };
+
+  const handleDeleteVoice = async (id: string) => {
+    try {
+      await localTtsDeleteVoice(id);
+      setLocalVoices((prev) =>
+        prev ? { ...prev, profiles: prev.profiles.filter((p) => p.id !== id) } : prev,
+      );
+    } catch (e) {
+      toast.error({ title: t('editor.subtitleDub.cloneFailed'), message: String(e) });
+    }
+  };
   // Voice sample playback: a plain <audio> element, kept in a ref so switching
   // voices can stop the previous sample instead of layering them.
   const [previewingVoice, setPreviewingVoice] = useState(false);
@@ -618,7 +792,12 @@ export function SubtitleDubPanel({ engine, initialDraft, onDraftChange }: Props)
    * fixed phrase otherwise.
    */
   const handlePreviewVoice = async () => {
-    if (!ttsApiKey) {
+    if (ttsProvider === 'local') {
+      if (!localStatus?.installed) {
+        toast.error({ title: t('editor.subtitleDub.localNotReady') });
+        return;
+      }
+    } else if (!ttsApiKey) {
       toast.error({
         title: t('editor.subtitleDub.needAI'),
         message: t('editor.subtitleDub.needAIMsg'),
@@ -656,7 +835,12 @@ export function SubtitleDubPanel({ engine, initialDraft, onDraftChange }: Props)
   };
   const handleDub = async () => {
     if (!engine || dubSource.length === 0) return;
-    if (!ttsApiKey) {
+    if (ttsProvider === 'local') {
+      if (!localStatus?.installed) {
+        toast.error({ title: t('editor.subtitleDub.localNotReady') });
+        return;
+      }
+    } else if (!ttsApiKey) {
       toast.error({
         title: t('editor.subtitleDub.needAI'),
         message: t('editor.subtitleDub.needAIMsg'),
@@ -693,50 +877,77 @@ export function SubtitleDubPanel({ engine, initialDraft, onDraftChange }: Props)
       dubTrackId.current = trackId;
     }
     const sorted = [...dubSource].sort((a, b) => a.startTime - b.startTime);
-    try {
-      for (let i = 0; i < sorted.length; i++) {
-        if (controller.signal.aborted) break;
-        const e = sorted[i];
-        if (!e.text.trim()) continue;
-        setProgress(t('editor.subtitleDub.dubbing', { done: i + 1, total: sorted.length }));
-        // Speak-fit window = this cue plus the silence before the next one.
-        // Sizing to the cue alone (endTime - startTime) throws away the pause
-        // that follows it, forcing needless speed-up on lines that had room to
-        // breathe; the ceiling is where the next line must start talking.
-        const nextStart = i + 1 < sorted.length ? sorted[i + 1].startTime : e.endTime;
-        const windowMs = Math.max(nextStart - e.startTime, e.endTime - e.startTime);
-        const res = await ttsSynthesize({
-          provider: ttsProvider,
-          voice,
-          text: e.text,
-          apiKey: ttsApiKey,
-          model: ttsModel,
-          windowMs,
-          index: i,
-        });
-        const src = await toAssetUrl(res.path);
-        // Every line starts at its own cue time — never nudged later to dodge
-        // the previous clip. Chaining starts off "the next free frame" made each
-        // overlong line push all the following ones back, and that lateness
-        // accumulated, so by mid-video the voice was a whole cue behind the
-        // subtitles. A line that still overruns is trimmed below instead, which
-        // costs a clipped tail on that one line and keeps everything after it
-        // in sync.
-        const startF = msToFramePos(e.startTime);
-        let durF = msToFrame(res.duration_ms);
-        // Elah rejects overlapping clips on a track, so cap the clip at the next
-        // cue's start. windowMs above already asked TTS to fit inside this span;
-        // this only bites when even MAX_SPEED wasn't enough.
-        if (i + 1 < sorted.length) {
-          const nextStartF = msToFramePos(sorted[i + 1].startTime);
-          if (startF + durF > nextStartF) durF = Math.max(nextStartF - startF, 1);
-        }
-        try {
-          engine.addClip({ type: 'audio', trackId, startFrame: startF, durationFrames: durF, src });
-        } catch {
-          // Skip a clip that still can't be placed rather than aborting the run.
-        }
+    // Each line is an independent API round-trip placed at its own cue time, so
+    // synthesize several at once. Sequential dubbing made a 100-line video take
+    // 100 back-to-back round-trips; a small pool keeps ordering irrelevant
+    // (clips are positioned by cue, not by arrival) while staying well under
+    // provider rate limits.
+    const DUB_CONCURRENCY = 4;
+    const synthesizeLine = async (i: number) => {
+      const e = sorted[i];
+      if (!e.text.trim()) return;
+      // Speak-fit window = this cue plus the silence before the next one.
+      // Sizing to the cue alone (endTime - startTime) throws away the pause
+      // that follows it, forcing needless speed-up on lines that had room to
+      // breathe; the ceiling is where the next line must start talking.
+      const nextStart = i + 1 < sorted.length ? sorted[i + 1].startTime : e.endTime;
+      const windowMs = Math.max(nextStart - e.startTime, e.endTime - e.startTime);
+      const res = await ttsSynthesize({
+        provider: ttsProvider,
+        voice,
+        text: e.text,
+        apiKey: ttsApiKey,
+        model: ttsModel,
+        windowMs,
+        index: i,
+      });
+      const src = await toAssetUrl(res.path);
+      // Every line starts at its own cue time — never nudged later to dodge
+      // the previous clip. Chaining starts off "the next free frame" made each
+      // overlong line push all the following ones back, and that lateness
+      // accumulated, so by mid-video the voice was a whole cue behind the
+      // subtitles. A line that still overruns is trimmed below instead, which
+      // costs a clipped tail on that one line and keeps everything after it
+      // in sync.
+      const startF = msToFramePos(e.startTime);
+      let durF = msToFrame(res.duration_ms);
+      // Elah rejects overlapping clips on a track, so cap the clip at the next
+      // cue's start. windowMs above already asked TTS to fit inside this span;
+      // this only bites when even MAX_SPEED wasn't enough.
+      if (i + 1 < sorted.length) {
+        const nextStartF = msToFramePos(sorted[i + 1].startTime);
+        if (startF + durF > nextStartF) durF = Math.max(nextStartF - startF, 1);
       }
+      try {
+        engine.addClip({ type: 'audio', trackId, startFrame: startF, durationFrames: durF, src });
+      } catch {
+        // Skip a clip that still can't be placed rather than aborting the run.
+      }
+    };
+    try {
+      let nextIndex = 0;
+      let completed = 0;
+      let firstError: unknown = null;
+      const worker = async () => {
+        while (!controller.signal.aborted && firstError === null) {
+          const i = nextIndex++;
+          if (i >= sorted.length) return;
+          try {
+            await synthesizeLine(i);
+          } catch (err) {
+            // Remember the first failure and let every worker drain; the lines
+            // already synthesized stay on the timeline.
+            firstError = firstError ?? err;
+            return;
+          }
+          completed += 1;
+          setProgress(t('editor.subtitleDub.dubbing', { done: completed, total: sorted.length }));
+        }
+      };
+      await Promise.all(
+        Array.from({ length: Math.min(DUB_CONCURRENCY, sorted.length) }, () => worker()),
+      );
+      if (firstError !== null) throw firstError;
       if (!controller.signal.aborted) toast.success({ title: t('editor.subtitleDub.dubDone') });
     } catch (err) {
       toast.error({ title: t('editor.subtitleDub.dubFailed'), message: String(err) });
@@ -888,34 +1099,168 @@ export function SubtitleDubPanel({ engine, initialDraft, onDraftChange }: Props)
 
       {/* 4. Voiceover */}
       <div className={sectionTitle}>{t('editor.subtitleDub.dubSection')}</div>
-      <div className="text-xs text-ed-text-muted">
-        {t('editor.subtitleDub.provider')}: {ttsProvider === 'openai' ? 'OpenAI' : 'Gemini'}
-      </div>
       <div className="flex flex-col gap-1 text-xs text-ed-text-muted">
-        {t('editor.subtitleDub.voice')}
+        {t('editor.subtitleDub.engine')}
         <Select
-          value={voice}
-          onValueChange={(v) => {
-            // Cut off a sample of the old voice, or it keeps playing after the
-            // selection has already moved on.
-            previewAudioRef.current?.pause();
-            previewAudioRef.current = null;
-            setPreviewingVoice(false);
-            setVoice(v);
-          }}
+          value={engineChoice}
+          onValueChange={(v) => setEngineChoice(v as 'cloud' | 'local')}
         >
           <SelectTrigger>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {TTS_VOICES[ttsProvider].map((v) => (
-              <SelectItem key={v.id} value={v.id}>
-                {v.label}
-              </SelectItem>
-            ))}
+            <SelectItem value="cloud">
+              {t('editor.subtitleDub.engineCloud', {
+                provider: cloudProvider === 'openai' ? 'OpenAI' : 'Gemini',
+              })}
+            </SelectItem>
+            <SelectItem value="local">{t('editor.subtitleDub.engineLocal')}</SelectItem>
           </SelectContent>
         </Select>
       </div>
+
+      {/* Local engine: one-time install (uv env + voice models). */}
+      {engineChoice === 'local' && localStatus && !localStatus.installed && (
+        <>
+          <div className="text-[11px] text-ed-text-muted">
+            {t('editor.subtitleDub.localInstallHint')}
+          </div>
+          <button
+            type="button"
+            className={btn}
+            onClick={handleLocalInstall}
+            disabled={localInstalling || !!busy}
+          >
+            {localInstalling ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Download className="w-4 h-4" />
+            )}
+            {localInstalling
+              ? t('editor.subtitleDub.localInstalling')
+              : t('editor.subtitleDub.localInstall')}
+          </button>
+          {localInstalling && localSetupMsg && (
+            <div className="text-[11px] text-ed-text-muted truncate">{localSetupMsg}</div>
+          )}
+        </>
+      )}
+
+      {(engineChoice === 'cloud' || localStatus?.installed) && (
+        <div className="flex flex-col gap-1 text-xs text-ed-text-muted">
+          {t('editor.subtitleDub.voice')}
+          <Select
+            value={voice}
+            onValueChange={(v) => {
+              // Cut off a sample of the old voice, or it keeps playing after the
+              // selection has already moved on.
+              previewAudioRef.current?.pause();
+              previewAudioRef.current = null;
+              setPreviewingVoice(false);
+              setVoice(v);
+            }}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {voiceOptions.map((v) => (
+                <SelectItem key={v.id} value={v.id}>
+                  {v.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {ttsProvider === 'local' && localVoicesLoading && (
+            <div className="text-[11px] text-ed-text-muted">
+              {t('editor.subtitleDub.localVoicesLoading')}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Voice cloning: register a 3-10s reference recording as a reusable voice. */}
+      {engineChoice === 'local' && localStatus?.installed && (
+        <>
+          {!cloneOpen ? (
+            <button
+              type="button"
+              className={btn}
+              onClick={() => setCloneOpen(true)}
+              disabled={!!busy || cloneBusy}
+            >
+              <UserPlus className="w-4 h-4" /> {t('editor.subtitleDub.cloneVoice')}
+            </button>
+          ) : (
+            <div className="flex flex-col gap-1.5 shrink-0 rounded-md border border-ed-border p-2">
+              <div className="text-[11px] text-ed-text-muted">
+                {t('editor.subtitleDub.cloneVoiceHint')}
+              </div>
+              <input
+                type="text"
+                value={cloneName}
+                disabled={cloneBusy}
+                onChange={(e) => setCloneName(e.target.value)}
+                placeholder={t('editor.subtitleDub.cloneVoiceName')}
+                className="w-full bg-ed-elevated text-xs text-ed-text border border-ed-border rounded px-2 py-1.5 focus:border-ed-accent focus:outline-none"
+              />
+              <button type="button" className={btn} onClick={handleCloneVoice} disabled={cloneBusy}>
+                {cloneBusy ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <UserPlus className="w-4 h-4" />
+                )}
+                {t('editor.subtitleDub.cloneVoicePick')}
+              </button>
+              <button
+                type="button"
+                className="text-[11px] underline text-ed-text-muted self-start"
+                onClick={() => setCloneOpen(false)}
+                disabled={cloneBusy}
+              >
+                {t('editor.subtitleDub.cancel')}
+              </button>
+            </div>
+          )}
+          {localVoices && localVoices.profiles.some((p) => !p.builtin) && (
+            <div className="flex flex-col gap-1 shrink-0">
+              {localVoices.profiles
+                .filter((p) => !p.builtin)
+                .map((p) => (
+                <div
+                  key={p.id}
+                  className="flex items-center justify-between gap-2 text-xs text-ed-text-muted px-1"
+                >
+                  <span className="truncate">👤 {p.name}</span>
+                  <button
+                    type="button"
+                    title={t('editor.subtitleDub.deleteVoice')}
+                    onClick={() => handleDeleteVoice(p.id)}
+                    disabled={!!busy || cloneBusy}
+                    className="shrink-0 hover:text-ed-text transition-colors"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+      {/* Voice profiles are app-level assets; full management (preview every
+          voice, uninstall the engine) lives on the dedicated Voices page. */}
+      {engineChoice === 'local' && (
+        <button
+          type="button"
+          className="text-[11px] underline text-ed-text-muted self-start -mt-1"
+          onClick={() =>
+            window.dispatchEvent(new CustomEvent('youwee:navigate', { detail: { page: 'voices' } }))
+          }
+        >
+          {t('editor.subtitleDub.manageVoices')}
+        </button>
+      )}
+
       {/* Hearing a voice before dubbing the whole transcript: one API call here
           instead of discovering the wrong voice after N lines have been spent. */}
       <button

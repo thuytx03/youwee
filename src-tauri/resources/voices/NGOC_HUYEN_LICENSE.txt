@@ -1,0 +1,12 @@
+ngoc_huyen.wav — reference audio for the bundled "Ngọc Huyền" voice profile.
+
+Source:  https://huggingface.co/datasets/pnnbao-ump/ngochuyen_voice
+         (one sample, converted to 48kHz mono WAV)
+Author:  pnnbao-ump (VieNeu-TTS author); voice originates from "Ngọc Huyền (Vbee)".
+License: CC-BY-NC-4.0 — NON-COMMERCIAL use only.
+
+This file is bundled for INTERNAL deployments only. Do NOT include this voice
+in any public or commercial release of the app: the NC license (and the fact
+that the voice belongs to a commercial TTS provider) forbids it. Remove the
+entry from BUNDLED_VOICES in src-tauri/src/services/vieneu.rs before building
+a public release.

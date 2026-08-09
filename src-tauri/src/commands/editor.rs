@@ -22,8 +22,12 @@ mod attachments;
 mod cleanup;
 #[path = "editor/drafts.rs"]
 mod drafts;
+#[path = "editor/faceswap.rs"]
+mod faceswap;
 #[path = "editor/jobs.rs"]
 mod jobs;
+#[path = "editor/localtts.rs"]
+mod localtts;
 #[path = "editor/metadata.rs"]
 mod metadata;
 #[path = "editor/preview.rs"]
@@ -34,7 +38,9 @@ mod tts;
 pub use attachments::*;
 pub use cleanup::*;
 pub use drafts::*;
+pub use faceswap::*;
 pub use jobs::*;
+pub use localtts::*;
 pub use metadata::*;
 pub use preview::*;
 pub use tts::*;

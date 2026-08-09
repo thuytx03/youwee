@@ -44,6 +44,7 @@ import {
   SettingsSection,
   type SettingsSectionId,
   SettingsSidebar,
+  StorageSection,
 } from '@/components/settings';
 import { FaIcon } from '@/components/shared/FaIcon';
 import { Badge } from '@/components/ui/badge';
@@ -147,6 +148,8 @@ export function SettingsPage({
                 {activeSection === 'dependencies' && (
                   <DependenciesSection highlightId={highlightId} />
                 )}
+
+                {activeSection === 'storage' && <StorageSection highlightId={highlightId} />}
 
                 {activeSection === 'download' && <DownloadSection highlightId={highlightId} />}
 

@@ -48,6 +48,7 @@ import {
   SummaryPage,
   UniversalPage,
   VideoEditorPage,
+  VoicesPage,
 } from '@/pages';
 
 function AppContent() {
@@ -76,6 +77,23 @@ function AppContent() {
 
   const openDependenciesSettings = useCallback(() => {
     openSettingsPage('dependencies');
+  }, [openSettingsPage]);
+
+  // Deep-link from feature panels (e.g. the editor's voiceover panel → the
+  // Voices page) to any page without prop-drilling through page trees.
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent<{ page?: Page; settingsSection?: SettingsSectionId }>)
+        .detail;
+      if (!detail?.page) return;
+      if (detail.page === 'settings') {
+        openSettingsPage(detail.settingsSection ?? 'general');
+      } else {
+        setCurrentPage(detail.page);
+      }
+    };
+    window.addEventListener('youwee:navigate', handler);
+    return () => window.removeEventListener('youwee:navigate', handler);
   }, [openSettingsPage]);
 
   const openExternalSummary = useCallback((url: string) => {
@@ -208,6 +226,7 @@ function AppContent() {
         )}
         {currentPage === 'metadata' && <MetadataPage />}
         {currentPage === 'subtitles' && <SubtitlesPage />}
+        {currentPage === 'voices' && <VoicesPage />}
         {currentPage === 'library' && <HistoryPage />}
         {currentPage === 'logs' && <LogsPage />}
         {currentPage === 'settings' && <SettingsPage initialSection={settingsInitialSection} />}

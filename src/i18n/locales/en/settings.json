@@ -12,7 +12,8 @@
     "network": "Network & Auth",
     "system": "System",
     "about": "About",
-    "pluginStore": "Plugin Store"
+    "pluginStore": "Plugin Store",
+    "storage": "Storage & Models"
   },
   "search": {
     "placeholder": "Search settings...",
@@ -924,5 +925,46 @@
     "publisher": "Publisher",
     "thirdPartyNotice": "Third-party plugins are not reviewed by Youwee. Review and trust them before installing.",
     "refresh": "Refresh"
+  },
+  "storage": {
+    "title": "Storage & Models",
+    "description": "See how much space installed AI models and libraries use, and clean up when needed.",
+    "loading": "Calculating size…",
+    "refresh": "Refresh",
+    "faceSwap": {
+      "name": "Face Swap",
+      "installedTotal": "Installed · {{size}}",
+      "notInstalled": "Not installed",
+      "installHint": "Open the video editor → Face Swap tab to install this feature.",
+      "models": "AI models",
+      "modelsHint": "Safe to clear — re-downloads on the next swap.",
+      "runtime": "Runtime",
+      "runtimeHint": "Python and libraries — removed only by a full uninstall.",
+      "cleanModels": "Clear model cache",
+      "cleanConfirm": "Delete all downloaded AI models? The next swap will re-download them (~550MB).",
+      "cleanDone": "Model cache cleared",
+      "cleanFailed": "Failed to clear cache",
+      "freed": "Freed {{size}}",
+      "cleanNote": "\"Clear model cache\" only removes downloaded models and keeps the install. \"Uninstall\" wipes everything for a fresh setup.",
+      "uninstall": "Uninstall completely",
+      "uninstallConfirm": "Remove the whole face-swap tool (models + Python + libraries)? You'll need to reinstall to use it again.",
+      "uninstallDone": "Face swap tool uninstalled",
+      "uninstallFailed": "Uninstall failed"
+    },
+    "voices": {
+      "name": "Local voices (VieNeu)",
+      "models": "Voice models",
+      "modelsHint": "Safe to clear — re-downloads on the next synthesis.",
+      "cloned": "Cloned voices",
+      "clonedHint": "Your reference recordings — removed only by a full uninstall.",
+      "cleanConfirm": "Delete the downloaded voice models? The next synthesis will re-download them.",
+      "cleanDone": "Voice model cache cleared",
+      "cleanFailed": "Failed to clear voice model cache",
+      "cleanNote": "\"Clear model cache\" keeps the install and your cloned voices. \"Uninstall\" wipes everything, including cloned voices.",
+      "uninstallConfirm": "Remove the local voice engine (models + Python + libraries)? Your cloned voices will also be deleted.",
+      "uninstallDone": "Local voice engine uninstalled",
+      "uninstallFailed": "Uninstall failed",
+      "installHint": "Open the Voices page in the sidebar to install this feature."
+    }
   }
 }

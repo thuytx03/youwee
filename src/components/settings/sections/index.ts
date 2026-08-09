@@ -7,3 +7,4 @@ export { NetworkSection } from './NetworkSection';
 export { PluginStoreSection } from './PluginStoreSection';
 export { PluginsSection } from './PluginsSection';
 export { RemoteDownloadSection } from './RemoteDownloadSection';
+export { StorageSection } from './StorageSection';

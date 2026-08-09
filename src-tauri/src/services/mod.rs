@@ -1,11 +1,14 @@
 mod ai;
 mod deno;
+mod facefusion;
 mod ffmpeg;
 mod gallerydl;
 mod plugin;
 pub mod polling;
 pub mod telegram;
 mod tts;
+mod uv;
+mod vieneu;
 mod whisper;
 mod youtube_search;
 mod ytdlp;
@@ -13,10 +16,12 @@ mod ytdlp_args;
 
 pub use ai::*;
 pub use deno::*;
+pub use facefusion::*;
 pub use ffmpeg::*;
 pub use gallerydl::*;
 pub use plugin::*;
 pub use tts::*;
+pub use vieneu::*;
 pub use whisper::*;
 pub use youtube_search::*;
 pub use ytdlp::*;

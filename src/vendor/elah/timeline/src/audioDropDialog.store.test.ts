@@ -31,4 +31,16 @@ describe('audioDropDialog store', () => {
     useAudioDropDialogStore.getState().respond('audio-only')
     await expect(second).resolves.toBe('audio-only')
   })
+
+  it('cancel resolves the pending request with null and closes', async () => {
+    const pending = useAudioDropDialogStore.getState().request('clip.mp4')
+
+    useAudioDropDialogStore.getState().cancel()
+
+    await expect(pending).resolves.toBeNull()
+    const closed = useAudioDropDialogStore.getState()
+    expect(closed.open).toBe(false)
+    expect(closed.assetName).toBe('')
+    expect(closed.resolve).toBeNull()
+  })
 })

@@ -1,6 +1,7 @@
 export type SettingsSectionId =
   | 'general'
   | 'dependencies'
+  | 'storage'
   | 'download'
   | 'remote-download'
   | 'plugin-store'
@@ -464,6 +465,7 @@ export function searchSettings(query: string, t: (key: string) => string): Searc
 export const SECTION_INFO: Record<SettingsSectionId, { label: string; icon: string }> = {
   general: { label: 'General', icon: 'Palette' },
   dependencies: { label: 'Dependencies', icon: 'Package' },
+  storage: { label: 'Storage & Models', icon: 'HardDrive' },
   download: { label: 'Download', icon: 'ArrowDownToLine' },
   'remote-download': { label: 'Remote Download', icon: 'MessageCircleCode' },
   'plugin-store': { label: 'Plugin Store', icon: 'ShoppingBag' },

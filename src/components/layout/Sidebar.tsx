@@ -1,4 +1,5 @@
 import {
+  AudioLines,
   ChevronLeft,
   ChevronRight,
   Clapperboard,
@@ -31,6 +32,7 @@ export type Page =
   | 'processing'
   | 'editor'
   | 'subtitles'
+  | 'voices'
   | 'metadata'
   | 'library'
   | 'logs'
@@ -87,6 +89,11 @@ const navItems: NavItem[] = [
     id: 'subtitles',
     labelKey: 'sidebar.subtitles',
     icon: <Subtitles className="w-5 h-5" />,
+  },
+  {
+    id: 'voices',
+    labelKey: 'sidebar.voices',
+    icon: <AudioLines className="w-5 h-5" />,
   },
   {
     id: 'metadata',

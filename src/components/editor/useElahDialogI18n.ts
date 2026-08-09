@@ -55,6 +55,7 @@ export function useElahDialogI18n() {
       'Unlock track': t('editor.lib.unlockTrack'),
       'Mute track': t('editor.lib.muteTrack'),
       'Unmute track': t('editor.lib.unmuteTrack'),
+      Close: t('editor.audioDrop.close'),
     };
 
     const translateRoot = (root: HTMLElement) => {

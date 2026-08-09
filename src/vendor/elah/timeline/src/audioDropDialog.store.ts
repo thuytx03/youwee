@@ -19,6 +19,8 @@ interface AudioDropDialogActions {
   request: (assetName: string) => Promise<AudioDropChoice | null>
   /** Resolve the in-flight request with a choice and close the dialog. */
   respond: (choice: AudioDropChoice) => void
+  /** Dismiss the dialog without a choice; the request resolves `null`. */
+  cancel: () => void
 }
 
 /**
@@ -43,6 +45,11 @@ export const useAudioDropDialogStore = create<
 
   respond: (choice) => {
     get().resolve?.(choice)
+    set({ open: false, assetName: '', resolve: null })
+  },
+
+  cancel: () => {
+    get().resolve?.(null)
     set({ open: false, assetName: '', resolve: null })
   },
 }))

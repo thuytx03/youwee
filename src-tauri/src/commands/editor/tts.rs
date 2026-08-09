@@ -35,6 +35,40 @@ fn tts_dir(app: &AppHandle) -> Result<PathBuf, String> {
     Ok(dir)
 }
 
+/// Duration in seconds of an in-memory WAV file, from its header alone
+/// (data chunk length / byte rate). Both TTS providers hand us WAV — OpenAI
+/// with response_format "wav", Gemini wrapped by pcm_s16le_to_wav — so this
+/// avoids spawning ffprobe once per subtitle line.
+fn wav_duration_seconds(bytes: &[u8]) -> Option<f64> {
+    if bytes.len() < 44 || &bytes[0..4] != b"RIFF" || &bytes[8..12] != b"WAVE" {
+        return None;
+    }
+    let mut pos = 12usize;
+    let mut byte_rate: Option<u32> = None;
+    while pos + 8 <= bytes.len() {
+        let id = &bytes[pos..pos + 4];
+        let size = u32::from_le_bytes(bytes[pos + 4..pos + 8].try_into().ok()?) as usize;
+        if id == b"fmt " {
+            if pos + 20 > bytes.len() {
+                return None;
+            }
+            byte_rate = Some(u32::from_le_bytes(bytes[pos + 16..pos + 20].try_into().ok()?));
+        } else if id == b"data" {
+            let rate = byte_rate? as f64;
+            if rate <= 0.0 {
+                return None;
+            }
+            // A header can claim more data than the file holds (truncated
+            // stream); the bytes actually present are the ground truth.
+            let available = bytes.len() - pos - 8;
+            return Some(size.min(available) as f64 / rate);
+        }
+        // Chunks are word-aligned: odd sizes carry a pad byte.
+        pos += 8 + size + (size & 1);
+    }
+    None
+}
+
 /// Measure an audio file's duration (seconds) via ffprobe.
 async fn probe_audio_duration(app: &AppHandle, path: &str) -> Option<f64> {
     let ffprobe = get_ffprobe_path(app).await?;
@@ -56,14 +90,15 @@ async fn probe_audio_duration(app: &AppHandle, path: &str) -> Option<f64> {
     String::from_utf8_lossy(&out.stdout).trim().parse::<f64>().ok()
 }
 
-/// Transcribe a video's audio to SRT via Whisper, from raw video bytes.
+/// Transcribe a video's audio to SRT via Whisper, from a video file on disk.
 /// The editor's media assets are browser blob URLs (no real file path), so the
-/// panel fetches the blob and sends the bytes here rather than a path.
+/// panel writes the blob to a temp file via the fs plugin's binary channel and
+/// passes the path here. Sending the bytes through invoke args (JSON-serialized
+/// number array) froze the UI for large videos.
 #[tauri::command]
-pub async fn editor_transcribe_bytes(
+pub async fn editor_transcribe_video(
     app: AppHandle,
-    bytes: Vec<u8>,
-    filename: String,
+    video_path: String,
     api_key: String,
     language: Option<String>,
     whisper_endpoint_url: Option<String>,
@@ -72,30 +107,23 @@ pub async fn editor_transcribe_bytes(
     if api_key.is_empty() {
         return Err("Whisper API key not configured".to_string());
     }
-    // Write the incoming video to a temp file, extract audio, transcribe as SRT.
-    let temp_dir = std::env::temp_dir().join(format!("youwee_editor_stt_{}", chrono::Utc::now().timestamp_millis()));
+    if !Path::new(&video_path).exists() {
+        return Err(format!("Video file not found: {}", video_path));
+    }
+    let temp_dir = std::env::temp_dir().join(format!(
+        "youwee_editor_stt_{}",
+        chrono::Utc::now().timestamp_millis()
+    ));
     std::fs::create_dir_all(&temp_dir).map_err(|e| format!("temp dir: {}", e))?;
-    let ext = Path::new(&filename)
-        .extension()
-        .and_then(|e| e.to_str())
-        .unwrap_or("mp4");
-    let video_path = temp_dir.join(format!("input.{}", ext));
-    tokio::fs::write(&video_path, &bytes)
-        .await
-        .map_err(|e| format!("write temp video: {}", e))?;
 
     let audio_out = temp_dir.join("audio.mp3");
     let audio_out_str = audio_out.to_string_lossy().to_string();
     let ffmpeg_path = get_ffmpeg_path(&app)
         .await
         .map(|p| p.to_string_lossy().to_string());
-    extract_audio_for_whisper(
-        &video_path.to_string_lossy(),
-        &audio_out_str,
-        ffmpeg_path.as_deref(),
-    )
-    .await
-    .map_err(|e| e.to_string())?;
+    extract_audio_for_whisper(&video_path, &audio_out_str, ffmpeg_path.as_deref())
+        .await
+        .map_err(|e| e.to_string())?;
 
     let result = transcribe_audio(
         &api_key,
@@ -130,23 +158,45 @@ pub async fn editor_tts_synthesize(
     }
     let model = model.unwrap_or_default();
 
-    // 1. Synthesize raw WAV bytes from the chosen provider.
-    let bytes = match provider.to_lowercase().as_str() {
-        "openai" => synthesize_openai(&api_key, &model, &voice, &text).await?,
-        "gemini" => synthesize_gemini(&api_key, &model, &voice, &text).await?,
-        other => return Err(format!("Unsupported TTS provider: {}", other)),
-    };
-
     let dir = tts_dir(&app)?;
     let stamp = chrono::Local::now().format("%Y%m%d_%H%M%S").to_string();
     let idx = index.unwrap_or(0);
     let raw_path = dir.join(format!("tts_{}_{}_raw.wav", stamp, idx));
-    tokio::fs::write(&raw_path, &bytes)
-        .await
-        .map_err(|e| format!("Failed to write TTS audio: {}", e))?;
+
+    // 1. Synthesize a raw WAV from the chosen provider. Cloud providers hand
+    // back bytes we persist; the local (VieNeu) worker writes the file itself
+    // and needs no API key.
+    let bytes = match provider.to_lowercase().as_str() {
+        "openai" => {
+            let b = synthesize_openai(&api_key, &model, &voice, &text).await?;
+            tokio::fs::write(&raw_path, &b)
+                .await
+                .map_err(|e| format!("Failed to write TTS audio: {}", e))?;
+            b
+        }
+        "gemini" => {
+            let b = synthesize_gemini(&api_key, &model, &voice, &text).await?;
+            tokio::fs::write(&raw_path, &b)
+                .await
+                .map_err(|e| format!("Failed to write TTS audio: {}", e))?;
+            b
+        }
+        "local" => {
+            crate::services::synthesize_vieneu(&app, &text, &voice, &raw_path).await?;
+            tokio::fs::read(&raw_path)
+                .await
+                .map_err(|e| format!("Failed to read local TTS audio: {}", e))?
+        }
+        other => return Err(format!("Unsupported TTS provider: {}", other)),
+    };
 
     let raw_str = raw_path.to_string_lossy().to_string();
-    let raw_dur = probe_audio_duration(&app, &raw_str).await.unwrap_or(0.0);
+    // Header parse first (no process spawn); ffprobe only as a fallback for a
+    // provider response that isn't a well-formed WAV.
+    let raw_dur = match wav_duration_seconds(&bytes) {
+        Some(d) => d,
+        None => probe_audio_duration(&app, &raw_str).await.unwrap_or(0.0),
+    };
 
     // 2. Speed-fit if longer than the subtitle window.
     let window_s = window_ms.map(|w| w as f64 / 1000.0).unwrap_or(0.0);
@@ -193,9 +243,9 @@ pub async fn editor_tts_synthesize(
     }
     let _ = tokio::fs::remove_file(&raw_path).await;
 
-    let fit_dur = probe_audio_duration(&app, &fit_str)
-        .await
-        .unwrap_or(raw_dur / speed);
+    // atempo scales tempo by exactly `speed`, so the output duration is known
+    // analytically — no need to probe the file again.
+    let fit_dur = raw_dur / speed;
     Ok(TtsResult {
         path: fit_str,
         duration_ms: (fit_dur * 1000.0).round() as i64,

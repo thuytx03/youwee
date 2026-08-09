@@ -394,15 +394,21 @@ pub async fn editor_delete_preset(_app: AppHandle, id: String) -> Result<(), Str
     Ok(())
 }
 
-/// Save an Elah-exported MP4 (raw bytes from the WebCodecs export worker) to
-/// disk and record the result in editor_jobs. Returns the written file path.
+/// Finalize an Elah export: move the MP4 the frontend already wrote to a temp
+/// file (via the fs plugin's binary channel — passing the bytes through invoke
+/// args froze the UI on large exports) into its destination and record the
+/// result in editor_jobs. Returns the written file path.
 #[tauri::command]
 pub async fn editor_save_export(
     _app: AppHandle,
-    bytes: Vec<u8>,
+    temp_path: String,
     output_path: String,
     input_name: Option<String>,
 ) -> Result<String, String> {
+    let src = Path::new(&temp_path);
+    if !src.exists() {
+        return Err(format!("Temp export file not found: {}", temp_path));
+    }
     let path = Path::new(&output_path);
     if let Some(parent) = path.parent() {
         tokio::fs::create_dir_all(parent)
@@ -410,9 +416,13 @@ pub async fn editor_save_export(
             .map_err(|e| format!("Failed to create output directory: {}", e))?;
     }
 
-    tokio::fs::write(path, &bytes)
-        .await
-        .map_err(|e| format!("Failed to write exported file: {}", e))?;
+    // rename is instant on the same volume; fall back to copy across volumes.
+    if tokio::fs::rename(src, path).await.is_err() {
+        tokio::fs::copy(src, path)
+            .await
+            .map_err(|e| format!("Failed to write exported file: {}", e))?;
+        let _ = tokio::fs::remove_file(src).await;
+    }
 
     // Record in history (best-effort — a DB error should not lose the file).
     if let Ok(conn) = get_db() {

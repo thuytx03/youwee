@@ -434,6 +434,7 @@ pub async fn extract_audio_for_whisper(
     // Extract audio as mono MP3 at 64kbps (compact for Whisper)
     // -vn: no video
     // -ac 1: mono audio (smaller file)
+    // -ar 16000: Whisper resamples to 16kHz anyway, so upload at 16kHz
     // -b:a 64k: 64kbps bitrate (good enough for speech)
     let mut cmd = Command::new(ffmpeg);
     cmd.args([
@@ -444,6 +445,8 @@ pub async fn extract_audio_for_whisper(
         "libmp3lame",
         "-ac",
         "1",
+        "-ar",
+        "16000",
         "-b:a",
         "64k",
         "-y", // Overwrite output
@@ -481,6 +484,8 @@ pub async fn extract_audio_for_whisper(
             "libmp3lame",
             "-ac",
             "1",
+            "-ar",
+            "16000",
             "-b:a",
             "32k", // Even lower bitrate
             "-y",

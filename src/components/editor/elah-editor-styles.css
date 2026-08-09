@@ -1,0 +1,9 @@
+/*
+ * Elah's prebuilt dist/styles.css is a full compiled Tailwind sheet that
+ * re-declares standard utilities (.px-3, .text-sm, …). Loaded bare, it lands
+ * after the app's own Tailwind output and its .px-3 overrides the app's
+ * .pl-10 on the padding-left property (icon overlapping input text, etc.).
+ * Importing it into a cascade layer makes the app's unlayered utilities win
+ * every such conflict while leaving Elah-only classes (.bg-ed-*, …) intact.
+ */
+@import '../../vendor/elah/editor/dist/styles.css' layer(elah);

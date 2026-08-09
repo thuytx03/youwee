@@ -3,44 +3,56 @@
 // Adapted for a desktop Tauri app: local media only (no Pixabay/Agentic stock),
 // export saves to disk + records editor_jobs via EditorToolbar.
 import '@elah/editor/styles/tokens.css';
-import '@elah/editor/styles.css';
+import './elah-editor-styles.css';
 import './elah-theme-bridge.css';
 import {
+  createDefaultDemuxerFactory,
   EditorProvider,
+  framesToTimecode,
   type InitialTrackConfig,
   Preview,
   SourcePanel,
   Timeline,
   type TimelineRef,
-  createDefaultDemuxerFactory,
-  framesToTimecode,
+  usePlaybackStore,
   useTimelineEngine,
   useTracksStore,
-  usePlaybackStore,
 } from '@elah/editor';
-import { AlertTriangle, ChevronLeft, FolderOpen, Loader2, Pause, Play, Save, Square } from 'lucide-react';
-import { Captions, Clapperboard } from 'lucide-react';
+import {
+  AlertTriangle,
+  Captions,
+  ChevronLeft,
+  Clapperboard,
+  FolderOpen,
+  Loader2,
+  Pause,
+  Play,
+  Replace,
+  Save,
+  Square,
+} from 'lucide-react';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useToast } from '@/components/ui/toast';
 import {
+  type EditorDraft,
   importMediaFromDialog,
+  type MissingMedia,
   parseDraft,
   relinkDraftMedia,
   relocateAsset,
   remapProjectSrcs,
   removeAssetAndCleanup,
-  type EditorDraft,
-  type MissingMedia,
   type SubtitleDubDraft,
 } from '@/lib/editor-drafts';
 import { cn } from '@/lib/utils';
-import { useDraftAutosave, type SaveState } from './useDraftAutosave';
 import { EditorToolbar } from './EditorToolbar';
+import { FaceSwapPanel } from './FaceSwapPanel';
 import { ClipProperties } from './properties/ClipProperties';
 import { SubtitleDubPanel } from './SubtitleDubPanel';
 import { TextRegionOverlay } from './TextRegionOverlay';
 import { TimelineControls } from './TimelineControls';
+import { type SaveState, useDraftAutosave } from './useDraftAutosave';
 import { useElahDialogI18n } from './useElahDialogI18n';
 
 const FPS = 30;
@@ -85,7 +97,9 @@ const AspectControl = memo(function AspectControl() {
               )}
               style={active ? { boxShadow: 'inset 0 0 0 1px var(--elah-accent)' } : undefined}
             >
-              <span style={{ width: a.gw, height: a.gh, borderRadius: 2, background: 'currentColor' }} />
+              <span
+                style={{ width: a.gw, height: a.gh, borderRadius: 2, background: 'currentColor' }}
+              />
               {a.label}
             </button>
           );
@@ -107,11 +121,13 @@ const TransportBar = memo(function TransportBar({ fps }: { fps: number }) {
 
   useEffect(() => {
     return usePlaybackStore.subscribe((state) => {
-      if (currentTimeRef.current) currentTimeRef.current.textContent = framesToTimecode(state.currentFrame, fps);
+      if (currentTimeRef.current)
+        currentTimeRef.current.textContent = framesToTimecode(state.currentFrame, fps);
     });
   }, [fps]);
   useEffect(() => {
-    if (totalTimeRef.current) totalTimeRef.current.textContent = framesToTimecode(Math.max(totalFrames, 1), fps);
+    if (totalTimeRef.current)
+      totalTimeRef.current.textContent = framesToTimecode(Math.max(totalFrames, 1), fps);
   }, [totalFrames, fps]);
 
   const handleStop = () => {
@@ -123,14 +139,26 @@ const TransportBar = memo(function TransportBar({ fps }: { fps: number }) {
   return (
     <div className="grid grid-cols-[1fr_auto_1fr] items-center h-11 px-4 bg-ed-bg-2 border-t border-ed-border shrink-0">
       <span className="font-mono text-[11px] tabular-nums whitespace-nowrap">
-        <span ref={currentTimeRef} style={{ color: 'var(--elah-accent)' }}>00:00:00:00</span>
+        <span ref={currentTimeRef} style={{ color: 'var(--elah-accent)' }}>
+          00:00:00:00
+        </span>
         <span className="text-ed-text-muted mx-1.5">|</span>
-        <span ref={totalTimeRef} className="text-ed-text-muted">00:00:00:00</span>
+        <span ref={totalTimeRef} className="text-ed-text-muted">
+          00:00:00:00
+        </span>
       </span>
       <div className="flex items-center gap-3">
-        <button type="button" onClick={togglePlayPause} title="Phát / Dừng (Space)"
-          className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-white text-black hover:opacity-90 cursor-pointer shrink-0">
-          {isPlaying ? <Pause size={15} fill="currentColor" /> : <Play size={15} fill="currentColor" className="ml-0.5" />}
+        <button
+          type="button"
+          onClick={togglePlayPause}
+          title="Phát / Dừng (Space)"
+          className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-white text-black hover:opacity-90 cursor-pointer shrink-0"
+        >
+          {isPlaying ? (
+            <Pause size={15} fill="currentColor" />
+          ) : (
+            <Play size={15} fill="currentColor" className="ml-0.5" />
+          )}
         </button>
         <button type="button" onClick={handleStop} title="Dừng lại" className={ghostIcon}>
           <Square size={13} fill="currentColor" />
@@ -312,7 +340,7 @@ export function VideoEditorStudio({ draft = null, onExit }: VideoEditorStudioPro
   const timelineRef = useRef<TimelineRef>(null);
   const [engine, setEngine] = useState<TimelineRef['engine'] | null>(null);
   const [playback, setPlayback] = useState<TimelineRef['playback'] | null>(null);
-  const [leftTab, setLeftTab] = useState<'media' | 'subtitle'>('media');
+  const [leftTab, setLeftTab] = useState<'media' | 'subtitle' | 'faceswap'>('media');
 
   // A draft carries its own frame rate and canvas size; both must be known
   // before EditorProvider constructs the engine, hence parsed here on mount.
@@ -412,7 +440,12 @@ export function VideoEditorStudio({ draft = null, onExit }: VideoEditorStudioPro
 
   return (
     <div className="elah-root flex flex-col h-full min-h-0 bg-ed-bg text-ed-text">
-      <EditorProvider fps={fps} defaultTrackHeight={36} initialTracks={INITIAL_TRACKS} stage={stage}>
+      <EditorProvider
+        fps={fps}
+        defaultTrackHeight={36}
+        initialTracks={INITIAL_TRACKS}
+        stage={stage}
+      >
         <DraftBar
           name={draftName}
           saveState={saveState}
@@ -443,7 +476,11 @@ export function VideoEditorStudio({ draft = null, onExit }: VideoEditorStudioPro
                   'flex-1 inline-flex items-center justify-center gap-1.5 py-2 text-xs transition-colors',
                   leftTab === 'media' ? 'text-ed-text' : 'text-ed-text-muted hover:text-ed-text',
                 )}
-                style={leftTab === 'media' ? { boxShadow: 'inset 0 -2px 0 var(--elah-accent)' } : undefined}
+                style={
+                  leftTab === 'media'
+                    ? { boxShadow: 'inset 0 -2px 0 var(--elah-accent)' }
+                    : undefined
+                }
               >
                 <Clapperboard className="w-4 h-4" /> {t('editor.subtitleDub.tabMedia')}
               </button>
@@ -454,9 +491,28 @@ export function VideoEditorStudio({ draft = null, onExit }: VideoEditorStudioPro
                   'flex-1 inline-flex items-center justify-center gap-1.5 py-2 text-xs transition-colors',
                   leftTab === 'subtitle' ? 'text-ed-text' : 'text-ed-text-muted hover:text-ed-text',
                 )}
-                style={leftTab === 'subtitle' ? { boxShadow: 'inset 0 -2px 0 var(--elah-accent)' } : undefined}
+                style={
+                  leftTab === 'subtitle'
+                    ? { boxShadow: 'inset 0 -2px 0 var(--elah-accent)' }
+                    : undefined
+                }
               >
                 <Captions className="w-4 h-4" /> {t('editor.subtitleDub.tabSubtitle')}
+              </button>
+              <button
+                type="button"
+                onClick={() => setLeftTab('faceswap')}
+                className={cn(
+                  'flex-1 inline-flex items-center justify-center gap-1.5 py-2 text-xs transition-colors',
+                  leftTab === 'faceswap' ? 'text-ed-text' : 'text-ed-text-muted hover:text-ed-text',
+                )}
+                style={
+                  leftTab === 'faceswap'
+                    ? { boxShadow: 'inset 0 -2px 0 var(--elah-accent)' }
+                    : undefined
+                }
+              >
+                <Replace className="w-4 h-4" /> {t('editor.faceSwap.tab')}
               </button>
             </div>
             <div className={cn('flex-1 min-h-0', leftTab === 'media' ? 'flex flex-col' : 'hidden')}>
@@ -476,12 +532,21 @@ export function VideoEditorStudio({ draft = null, onExit }: VideoEditorStudioPro
             </div>
             {/* Keep mounted (hidden via CSS) when switching tabs — unmounting
                 would wipe the panel's subtitle list, tracked clip ids, etc. */}
-            <div className={cn('flex-1 min-h-0', leftTab === 'subtitle' ? 'flex flex-col' : 'hidden')}>
+            <div
+              className={cn('flex-1 min-h-0', leftTab === 'subtitle' ? 'flex flex-col' : 'hidden')}
+            >
               <SubtitleDubPanel
                 engine={engine}
                 initialDraft={envelope?.subtitle}
                 onDraftChange={handleSubtitleChange}
               />
+            </div>
+            {/* Kept mounted like the subtitle tab: a running swap job must
+                survive the user peeking at another tab. */}
+            <div
+              className={cn('flex-1 min-h-0', leftTab === 'faceswap' ? 'flex flex-col' : 'hidden')}
+            >
+              <FaceSwapPanel engine={engine} />
             </div>
           </div>
           <div className="flex-1 min-w-0 min-h-0 flex flex-col bg-black">
